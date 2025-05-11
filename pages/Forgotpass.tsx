@@ -14,7 +14,7 @@ import LinearGradient from 'react-native-linear-gradient';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
-  'Login'
+  'Forgotpass'
 >;
 
 type Props = {
@@ -50,7 +50,7 @@ export default function Forgotpass({ navigation }: Props) {
 
         <TouchableOpacity
           style={styles.resetButton}
-          onPress={() => navigation.navigate('Cameratest')}
+          onPress={() => navigation.navigate('Login')}
         >
           <Text style={styles.resetButtonText}>Reset password</Text>
         </TouchableOpacity>

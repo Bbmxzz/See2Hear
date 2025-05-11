@@ -7,11 +7,13 @@ import {
   StyleSheet,
   Button,
   Image,
+  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import axios from 'axios';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -26,6 +28,21 @@ export default function Login({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [hidePassword, setHidePassword] = useState(true);
+
+  const handleLogin = async () => {
+    try{
+      const res = await axios.post('http:192.168.11.193:8080/login',{
+        email,
+        password,
+      });
+      if (res.data.success){
+        Alert.alert('Login successful');
+        navigation.navigate('Cameratest');
+      }
+    } catch (err) {
+      Alert.alert('Login failed');
+    }
+  };
 
   return (
     <LinearGradient
@@ -70,9 +87,7 @@ export default function Login({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={styles.loginButton}
-          onPress={() => navigation.navigate('Cameratest')}
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}
         >
           <Text style={styles.loginButtonText}>Login</Text>
         </TouchableOpacity>

@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Dimensions,
   LayoutChangeEvent,
-  TouchableOpacity,
+  Pressable,
 } from 'react-native';
 import TextRecognition, {
   TextRecognitionScript,
@@ -30,6 +30,8 @@ export default function Scantext({ route }: Props) {
   const [imageDisplaySize, setImageDisplaySize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
   const [contentHeight, setContentHeight] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isStartPressed, setIsStartPressed] = useState(false);
+  const [isStopPressed, setIsStopPressed] = useState(false);
 
   const screenHeight = Dimensions.get('window').height;
 
@@ -111,6 +113,7 @@ export default function Scantext({ route }: Props) {
           width: imageDisplaySize.width - 20,
           height: imageDisplaySize.height - 20,
           borderRadius: 10,
+          marginTop: "10%",
         }}
       />
 
@@ -120,34 +123,76 @@ export default function Scantext({ route }: Props) {
         <Text style={styles.ocrText}>{recognizedText.join('\n')}</Text>
       )}
 
-      <View style={{ height: 20 }} />
-
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={[styles.button, isSpeaking && styles.disabled]}
-          onPress={handleSpeak}
-          disabled={isSpeaking}
-        >
-          <Text style={styles.buttonText}>Start</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, styles.stopButton, !isSpeaking && styles.disabled]}
-          onPress={handleStop}
-          disabled={!isSpeaking}
-        >
-          <Text style={styles.buttonText}>Stop</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={{ height: 20 }} />
+      <View style={{ height: 100 }} />
     </View>
   );
 
-  return isScrollable ? (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>{Content}</ScrollView>
-  ) : (
-    <View style={styles.scrollContainer}>{Content}</View>
+  return (
+    <View style={{ flex: 1 }}>
+      {isScrollable ? (
+        <ScrollView
+          contentContainerStyle={[styles.scrollContainer, { paddingBottom: 120 }]}
+        >
+          {Content}
+        </ScrollView>
+      ) : (
+        <View style={styles.scrollContainer}>{Content}</View>
+      )}
+
+      <View style={styles.fixedButtonContainer}>
+        <Pressable
+          onPressIn={() => setIsStartPressed(true)}
+          onPressOut={() => setIsStartPressed(false)}
+          onPress={handleSpeak}
+          disabled={isSpeaking}
+          style={[
+            styles.button,
+            {
+              backgroundColor: isSpeaking
+                ? 'rgb(121, 160, 180)'
+                : isStartPressed
+                ? 'rgba(34, 102, 141, 1)'
+                : 'rgba(34, 102, 141, 1)',
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.buttonText,
+              { color: isSpeaking ? 'rgba(255, 255, 255 ,0.7)' : isStartPressed ? 'rgba(255, 255, 255, 1)' : 'rgb(255, 255, 255)' },
+            ]}
+          >
+            Start
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPressIn={() => setIsStopPressed(true)}
+          onPressOut={() => setIsStopPressed(false)}
+          onPress={handleStop}
+          disabled={!isSpeaking}
+          style={[
+            styles.button,
+            {
+              backgroundColor: !isSpeaking
+                ? 'rgb(231, 149, 143)'
+                : isStopPressed
+                ? 'rgba(217, 83, 79, 1)'
+                : 'rgba(217, 83, 79, 1)',
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.buttonText,
+              { color: !isSpeaking ? 'rgba(255, 255, 255, 0.7)' : isStopPressed ? 'rgb(255, 255, 255)' : 'rgb(255, 255, 255)' },
+            ]}
+          >
+            Stop
+          </Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -170,29 +215,25 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     width: '100%',
   },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginTop: 20,
-  },
   button: {
     flex: 1,
-    backgroundColor: '#22668D',
-    paddingVertical: 12,
+    paddingVertical: 15,
     borderRadius: 8,
     marginHorizontal: 5,
     alignItems: 'center',
-  },
-  stopButton: {
-    backgroundColor: '#d9534f',
   },
   buttonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  disabled: {
-    opacity: 0.6,
+  fixedButtonContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 20,
   },
 });

@@ -5,17 +5,18 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Button,
   Image,
+  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import axios from 'axios';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
-  'Login'
+  'Signup'
 >;
 
 type Props = {
@@ -29,22 +30,54 @@ export default function Signup({ navigation }: Props) {
   const [hidePassword1, setHidePassword1] = useState(true);
   const [hidePassword2, setHidePassword2] = useState(true);
 
+  const handleSignup = async () => {
+    if (!email || !password || !confirmpass) {
+      Alert.alert('Please fill in all fields');
+      return;
+    }
+    if (password !== confirmpass) {
+      Alert.alert('Password do not match');
+      return;
+    }
+    try {
+      const res = await axios.post('http://192.168.11.193:8080/signup', {
+        email,
+        password,
+      });
+
+      if (res.data.success) {
+        Alert.alert('Signup successful');
+        navigation.navigate('Login');
+      } else {
+        Alert.alert('Signup Failed', res.data.message || '');
+      }
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        if (err.response) {
+          if (err.response.status === 409) {
+            Alert.alert('Email already exists');
+          } else {
+            Alert.alert('Error', err.response.data.message || 'Could not connect to server');
+          }
+        } else if (err.request) {
+          Alert.alert('Error', 'Could not connect to server');
+        }
+      } else {
+        Alert.alert('Error', 'Something went wrong');
+      }
+    }
+  };
+
   return (
-    <LinearGradient
-      colors={['#8ECDDD', '#22668D']}
-      style={styles.linearGradient}
-    >
+    <LinearGradient colors={['#8ECDDD', '#22668D']} style={styles.linearGradient}>
       <View style={styles.card}>
-        <Image
-          source={require('../assets/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+
         <TextInput
           placeholder="example@gmail.com"
           placeholderTextColor="rgb(77, 118, 141)"
           value={email}
-          onChangeText={val => setEmail(val)}
+          onChangeText={setEmail}
           style={styles.input}
           autoCapitalize="none"
           spellCheck={false}
@@ -58,17 +91,13 @@ export default function Signup({ navigation }: Props) {
             placeholder="Create password"
             placeholderTextColor="rgb(77, 118, 141)"
             value={password}
-            onChangeText={val => setPassword(val)}
+            onChangeText={setPassword}
             style={styles.passwordInput}
             autoCapitalize="none"
             spellCheck={false}
           />
           <TouchableOpacity onPress={() => setHidePassword1(!hidePassword1)}>
-            <Icon
-              name={hidePassword1 ? 'eye-off' : 'eye'}
-              size={24}
-              color="rgb(34, 102, 141)"
-            />
+            <Icon name={hidePassword1 ? 'eye-off' : 'eye'} size={24} color="rgb(34, 102, 141)" />
           </TouchableOpacity>
         </View>
 
@@ -80,24 +109,17 @@ export default function Signup({ navigation }: Props) {
             placeholder="Confirm password"
             placeholderTextColor="rgb(77, 118, 141)"
             value={confirmpass}
-            onChangeText={val => setconfirmpass(val)}
+            onChangeText={setconfirmpass}
             style={styles.passwordInput}
             autoCapitalize="none"
             spellCheck={false}
           />
           <TouchableOpacity onPress={() => setHidePassword2(!hidePassword2)}>
-            <Icon
-              name={hidePassword2 ? 'eye-off' : 'eye'}
-              size={24}
-              color="rgb(34, 102, 141)"
-            />
+            <Icon name={hidePassword2 ? 'eye-off' : 'eye'} size={24} color="rgb(34, 102, 141)" />
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={styles.signupButton}
-          onPress={() => navigation.navigate('Login')}
-        >
+        <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
           <Text style={styles.signupButtonText}>Signup</Text>
         </TouchableOpacity>
 
@@ -150,7 +172,7 @@ const styles = StyleSheet.create({
     height: 45,
     paddingHorizontal: 15,
     borderWidth: 2,
-    borderColor:'rgb(34, 102, 141)',
+    borderColor: 'rgb(34, 102, 141)',
   },
   passwordInput: {
     flex: 1,
@@ -158,7 +180,7 @@ const styles = StyleSheet.create({
     color: 'rgb(34, 102, 141)',
   },
   signupButton: {
-    backgroundColor:'rgb(255, 180, 51)',
+    backgroundColor: 'rgb(255, 180, 51)',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -191,4 +213,3 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
 });
-

@@ -23,7 +23,7 @@ Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact')
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
-  'Login'
+  'Cameratest'
 >;
 
 type Props = {
@@ -188,18 +188,18 @@ const styles = StyleSheet.create({
     backgroundColor:'rgb(251, 248, 239)',
   },
   backButton: {
-    position: 'absolute',
+    flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     width: '100%',
-    top: 0,
     padding: 20,
   },
+
   takeaPhotoBtn: {
-    // backgroundColor: '#FFB433',
-    backgroundColor:'rgb(34, 102, 141)',
-    paddingTop: '46%',
-    paddingBottom: '46%',
-    marginBottom: 20,
+    backgroundColor: 'rgb(34, 102, 141)',
+    height: '47.5%',
+    marginBottom: "2.5%",
+    marginTop: "2.5%",
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
