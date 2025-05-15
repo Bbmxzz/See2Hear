@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, JSX } from 'react';
+
 import {
   View,
   Text,
@@ -16,10 +17,10 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { RootStackParamList } from '../App';
-import Tts from 'react-native-tts'
+import Tts from 'react-native-tts';
 
-Tts.setDefaultLanguage('en-GB')
-Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact')
+Tts.setDefaultLanguage('en-GB');
+Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact');
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -28,9 +29,14 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 
 type Props = {
   navigation: HomeScreenNavigationProp;
+  route: {
+    params: {
+      feature: 'Scantext' | 'QRScanner';
+    };
+  };
 };
 
-export default function Cameratest({ navigation }: Props) {
+export default function Cameratest({ navigation, route }: Props): JSX.Element {
   const camera = useRef<Camera>(null);
   const devices = useCameraDevices();
   const device = useCameraDevice('back');
@@ -38,6 +44,20 @@ export default function Cameratest({ navigation }: Props) {
   const [showCamera, setShowCamera] = useState(false);
   const [imageSource, setImageSource] = useState('');
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+
+  // Modify featureToScreen to return explicit screen names
+  const featureToScreen = (
+    feature: 'Scantext' | 'QRScanner'
+  ): 'Scantext' | 'QRScanner' => { 
+    switch (feature) {
+      case 'Scantext':
+        return 'Scantext';
+      case 'QRScanner':
+        return 'QRScanner';
+      default:
+        throw new Error('Unknown feature');
+    }
+  };
 
   useEffect(() => {
     async function getPermission() {
@@ -166,7 +186,10 @@ export default function Cameratest({ navigation }: Props) {
                 <TouchableOpacity
                   style={styles.useBtn}
                   onPress={() =>
-                    navigation.navigate('Scantext', { imagePath: imageSource })
+                    navigation.navigate(
+                      featureToScreen(route.params.feature), 
+                      { imagePath: imageSource }
+                    )
                   }
                 >
                   <Text style={styles.useText}>Use Photo</Text>
@@ -185,7 +208,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor:'rgb(251, 248, 239)',
+    backgroundColor: 'rgb(251, 248, 239)',
   },
   backButton: {
     flex: 1,
@@ -194,12 +217,11 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 20,
   },
-
   takeaPhotoBtn: {
     backgroundColor: 'rgb(34, 102, 141)',
     height: '47.5%',
-    marginBottom: "2.5%",
-    marginTop: "2.5%",
+    marginBottom: '2.5%',
+    marginTop: '2.5%',
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
@@ -207,8 +229,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   takeaPhotoBtnPressed: {
-    // backgroundColor:'rgb(221, 146, 15)',
-    backgroundColor:'rgb(17, 75, 109)',
+    backgroundColor: 'rgb(17, 75, 109)',
   },
   backText: {
     color: 'white',

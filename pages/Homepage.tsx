@@ -1,72 +1,94 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
-  Button,
-  Image,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome5'; 
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { launchImageLibrary } from 'react-native-image-picker';
 import { RootStackParamList } from '../App';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
-    RootStackParamList,
-    'Homepage'
->
+  RootStackParamList,
+  'Homepage'
+>;
 
 type Props = {
-    navigation: HomeScreenNavigationProp;
-}
+  navigation: HomeScreenNavigationProp;
+};
 
-export default function Homepage({navigation}: Props){
-    return((
-        <View style={styles.container}>          
-            <View style={styles.feature}>
-                <TouchableOpacity onPress={() => navigation.navigate('Cameratest')}>
-                    <Text style={styles.textFeature}>Scan</Text>
-                </TouchableOpacity>
-            </View>       
-            <View style={styles.feature}>
-                <TouchableOpacity onPress={() => navigation.navigate('Cameratest')}>
-                    <Text style={styles.textFeature}>Color</Text>
-                </TouchableOpacity>
-            </View>     
-            <View style={styles.feature}>
-                <TouchableOpacity onPress={() => navigation.navigate('Cameratest')}>
-                    <Text style={styles.textFeature}>Translate</Text>
-                </TouchableOpacity>
-            </View>  
-            <View style={styles.feature}>
-                <TouchableOpacity onPress={() => navigation.navigate('Cameratest')}>
-                    <Text style={styles.textFeature}>Qr/Barcode</Text>
-                </TouchableOpacity>
-            </View>  
-            
-        </View>
-    ))
+export default function Homepage({ navigation }: Props) {
+  return (
+    <View style={styles.container}>
+      <View style={styles.buttons}>
+        <TouchableOpacity
+          style={styles.feature}
+          onPress={() => navigation.navigate('Cameratest', { feature: 'Scantext' })}
+        >
+          <Icon name="search" size={28} color="#fff" />
+          <Text style={styles.textFeature}>Scan Text</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.buttons}>
+        <TouchableOpacity
+          style={styles.feature}
+          onPress={() => navigation.navigate('ColorDetector')}
+        >
+          <Icon name="palette" size={28} color="#fff" />
+          <Text style={styles.textFeature}>Detect Color</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.buttons}>
+        <TouchableOpacity
+          style={styles.feature}
+          onPress={() => navigation.navigate('Translate')}
+        >
+          <Icon name="globe" size={28} color="#fff" />
+          <Text style={styles.textFeature}>Translate</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.buttons}>
+        <TouchableOpacity
+          style={styles.feature}
+          onPress={() => navigation.navigate('Cameratest', { feature: 'QRScanner' })}
+        >
+          <Icon name="qrcode" size={28} color="#fff" />
+
+          <Text style={styles.textFeature}>Scan QR/Barcode</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    height: 'auto',
     display: 'flex',
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    height: '100%',
   },
   feature: {
-    width: '50%',
-    height: '45%',
-    backgroundColor: 'black',
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#22668D',
+    borderRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   textFeature: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 16,
-  }
-
-})
+    fontSize: 20,
+    marginTop: 10, 
+    textAlign: 'center',
+  },
+  buttons: {
+    width: '45%',
+    height: '47.5%',
+    margin: '2.5%',
+  },
+});

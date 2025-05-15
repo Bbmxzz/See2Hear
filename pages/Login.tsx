@@ -37,7 +37,7 @@ export default function Login({ navigation }: Props) {
       });
       if (res.data.success){
         Alert.alert('Login successful');
-        navigation.navigate('Cameratest');
+        navigation.navigate('Homepage');
       }
     } catch (err) {
       Alert.alert('Login failed');

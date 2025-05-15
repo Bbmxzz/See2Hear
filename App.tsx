@@ -7,18 +7,23 @@ import Speech from './pages/Speech';
 import Signup from './pages/Signup';
 import Scantext from './pages/Scantext';
 import Forgotpass from './pages/Forgotpass';
-// import Testpage from './pages/Testpage';
 import Homepage from './pages/Homepage';
+import ColorDetector from './pages/ColorDetector';
+import Translate from './pages/Translate';
+import QRScanner from './pages/QRScanner';
+// import ImageLabelingScreen from './pages/ImageLabelingScreen';
 
 export type RootStackParamList = {
   Login: undefined;
-  Cameratest: undefined;
+  Cameratest: { feature: 'Scantext' | 'QRScanner' };
   Speech:undefined;
   Signup: undefined;
   Scantext: { imagePath: string };
   Forgotpass: undefined;
-  // Testpage: undefined;
   Homepage: undefined;
+  ColorDetector: undefined;
+  QRScanner: { imagePath: string };
+  Translate: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -33,8 +38,11 @@ export default function App() {
         <Stack.Screen name="Speech" component={Speech} />
         <Stack.Screen name="Scantext" component={Scantext} />
         <Stack.Screen name="Forgotpass" component={Forgotpass} />
-        {/* <Stack.Screen name="Testpage" component={Testpage}/> */}
         <Stack.Screen name="Homepage" component={Homepage}/>
+        <Stack.Screen name="ColorDetector" component={ColorDetector}/>
+        <Stack.Screen name="QRScanner" component={QRScanner}/>
+        <Stack.Screen name="Translate" component={Translate}/>
+        {/* <Stack.Screen name="ImageLabelingScreen" component={ImageLabelingScreen}/> */}
       </Stack.Navigator>
     </NavigationContainer>
   );
