@@ -48,7 +48,7 @@ export default function ScanBarcode({ route }: Props) {
         }
         setImageDisplaySize({ width: displayWidth, height: displayHeight });
       },
-      (error) => console.error('Érror loading image size:', error)
+      (error) => console.error('Error loading image size:', error)
     );
     const scan = async () => {
       try {
@@ -90,7 +90,7 @@ export default function ScanBarcode({ route }: Props) {
           name: product.product_name || 'Unknown',
           brand: product.brands || 'Unknown',
           image: product.imagefront_url || '',
-          quantity: product.quantity || '',
+          quantity: product.quantity || 'Unknown',
         };
       } else {
         return null;

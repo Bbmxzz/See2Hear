@@ -26,16 +26,16 @@ export default function Homepage({ navigation }: Props) {
           style={styles.feature}
           onPress={() => navigation.navigate('Cameratest', { feature: 'Scantext' })}
         >
-          <Icon name="search" size={28} color="#fff" />
+          <Icon name="search" size={28} color="#FBF8EF" />
           <Text style={styles.textFeature}>Scan Text</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.buttons}>
         <TouchableOpacity
           style={styles.feature}
-          onPress={() => navigation.navigate('ColorDetector')}
+          onPress={() => navigation.navigate('Cameratest', { feature: 'ColorDetector' })}
         >
-          <Icon name="palette" size={28} color="#fff" />
+          <Icon name="palette" size={28} color="#FBF8EF" />
           <Text style={styles.textFeature}>Detect Color</Text>
         </TouchableOpacity>
       </View>
@@ -44,7 +44,7 @@ export default function Homepage({ navigation }: Props) {
           style={styles.feature}
           onPress={() => navigation.navigate('Translate')}
         >
-          <Icon name="globe" size={28} color="#fff" />
+          <Icon name="globe" size={28} color="#FBF8EF" />
           <Text style={styles.textFeature}>Translate</Text>
         </TouchableOpacity>
       </View>
@@ -53,7 +53,7 @@ export default function Homepage({ navigation }: Props) {
           style={styles.feature}
           onPress={() => navigation.navigate('Cameratest', { feature: 'QRScanner' })}
         >
-          <Icon name="qrcode" size={28} color="#fff" />
+          <Icon name="qrcode" size={28} color="#FBF8EF" />
 
           <Text style={styles.textFeature}>Scan QR/Barcode</Text>
         </TouchableOpacity>
@@ -70,6 +70,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     height: '100%',
+    backgroundColor: '#FBF8EF',
   },
   feature: {
     width: '100%',
@@ -80,7 +81,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   textFeature: {
-    color: 'white',
+    color: '#FBF8EF',
     fontWeight: 'bold',
     fontSize: 20,
     marginTop: 10, 

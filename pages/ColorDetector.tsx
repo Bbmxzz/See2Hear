@@ -1,173 +1,170 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  StyleSheet,
   View,
   Text,
+  StyleSheet,
   Image,
+  ScrollView,
   Dimensions,
   Platform,
-  ScrollView,
 } from 'react-native';
 import {
   getAverageColor,
   getPalette,
   getSegmentsAverageColor,
-  getSegmentsPalette,
   type PaletteResult,
 } from '@somesoap/react-native-image-palette';
 
-// const farm = require('./farm.jpeg');
-// const image = 'https://i.imgur.com/68jyjZT.jpg';
-// const image = 'https://i.imgur.com/O3XSdU7.jpg';
-const image = 'https://cdn.pixabay.com/photo/2024/05/26/10/15/bird-8788491_1280.jpg';
+type Props = {
+  route: {
+    params: {
+      imagePath: string;
+    };
+  };
+};
 
+export default function ColorDetector({ route }: Props) {
+  const imagePath = route.params.imagePath;
 
-export default function App() {
-  const [avgSectors, setAverageSectors] = useState<string[]>([]);
   const [averageColor, setAverageColor] = useState<string>('');
-  const [palette, setPalette] = useState<Partial<PaletteResult>>({});
+  const [palette, setPalette] = useState<PaletteResult | null>(null);
+  const [avgSectors, setAvgSectors] = useState<string[]>([]);
 
   useEffect(() => {
+    const uri = `file://${imagePath}`;
+
+    getAverageColor(uri)
+      .then(setAverageColor)
+      .catch(console.error);
+
+    getPalette(uri)
+      .then(setPalette)
+      .catch(console.error);
+
     getSegmentsAverageColor(
-      image,
+      uri,
       [
         { fromX: 0, toX: 33, fromY: 0, toY: 33 },
         { fromX: 34, toX: 66, fromY: 0, toY: 33 },
         { fromX: 67, toX: 100, fromY: 0, toY: 33 },
-
         { fromX: 0, toX: 33, fromY: 34, toY: 66 },
         { fromX: 34, toX: 66, fromY: 34, toY: 66 },
         { fromX: 67, toX: 100, fromY: 34, toY: 66 },
-
         { fromX: 0, toX: 33, fromY: 67, toY: 100 },
         { fromX: 34, toX: 66, fromY: 67, toY: 100 },
         { fromX: 67, toX: 100, fromY: 67, toY: 100 },
       ],
       { pixelSpacingAndroid: 2 }
     )
-      .then(setAverageSectors)
+      .then(setAvgSectors)
       .catch(console.error);
-
-    getSegmentsPalette(image, [
-      { fromX: 0, toX: 33, fromY: 0, toY: 33 },
-      { fromX: 34, toX: 66, fromY: 0, toY: 33 },
-      { fromX: 67, toX: 100, fromY: 0, toY: 33 },
-
-      { fromX: 0, toX: 33, fromY: 34, toY: 66 },
-      { fromX: 34, toX: 66, fromY: 34, toY: 66 },
-      { fromX: 67, toX: 100, fromY: 34, toY: 66 },
-
-      { fromX: 0, toX: 33, fromY: 67, toY: 100 },
-      { fromX: 34, toX: 66, fromY: 67, toY: 100 },
-      { fromX: 67, toX: 100, fromY: 67, toY: 100 },
-    ])
-      .then((res) => {
-        console.log({ res });
-      })
-      .catch(console.error);
-
-    getPalette(image, {
-      fallbackColor: '#ABABAB',
-      headers: { Auth: 'Bearer 123' },
-    })
-      .then(setPalette)
-      .catch(console.error);
-
-    getAverageColor(image, {
-      headers: { Auth: 'Bearer 123' },
-    })
-      .then(setAverageColor)
-      .catch(console.error);
-  }, []);
+  }, [route.params.imagePath]);
 
   return (
-    <ScrollView bounces={false} style={styles.container}>
-      <View style={{ backgroundColor: avgSectors[4], padding: 10 }}>
-        <View style={styles.textWrapper}>
-          <Text style={styles.title}>Image</Text>
-        </View>
-        <Image
-          source={typeof image === 'string' ? { uri: image } : image}
-          style={styles.img}
-        />
-        <View style={styles.textWrapper}>
-          <Text style={styles.title}>Average colors</Text>
-        </View>
-      </View>
-      <View style={styles.row}>
-        {avgSectors[0] && <ColorView color={avgSectors[0]} />}
-        {avgSectors[1] && <ColorView color={avgSectors[1]} />}
-        {avgSectors[2] && <ColorView color={avgSectors[2]} />}
-      </View>
-      <View style={styles.row}>
-        {avgSectors[3] && <ColorView color={avgSectors[3]} />}
-        {avgSectors[4] && <ColorView color={avgSectors[4]} />}
-        {avgSectors[5] && <ColorView color={avgSectors[5]} />}
-      </View>
-      <View style={styles.row}>
-        {avgSectors[6] && <ColorView color={avgSectors[6]} />}
-        {avgSectors[7] && <ColorView color={avgSectors[7]} />}
-        {avgSectors[8] && <ColorView color={avgSectors[8]} />}
+    <ScrollView style={styles.container}>
+      <Text style={styles.header}>Color Detector</Text>
+      <Image source={{ uri: `file://${imagePath}` }} style={styles.image} />
+
+      <Text style={styles.sectionTitle}>Segmented Average Colors</Text>
+      <View style={styles.grid}>
+        {avgSectors.map((color, idx) => (
+          <ColorBlock key={idx} color={color} label={`#${idx + 1}`} />
+        ))}
       </View>
 
-      {Boolean(averageColor) && (
-        <ColorView name="Average Color" color={averageColor} />
+      {averageColor && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Overall Average Color</Text>
+          <ColorBlock color={averageColor} />
+        </View>
       )}
-      {Object.entries(palette).map(([name, color]) => (
-        <ColorView key={name} name={name} color={color} />
-      ))}
+
+      {palette && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Palette</Text>
+          <View style={styles.palette}>
+            {Object.entries(palette).map(([name, color]) => (
+              <ColorBlock key={name} color={color} label={name} />
+            ))}
+          </View>
+        </View>
+      )}
     </ScrollView>
   );
 }
 
-const ColorView: React.FC<{ color: string; name?: string }> = ({
-  name,
-  color,
-}) => {
+function ColorBlock({ color, label }: { color: string; label?: string }) {
   return (
-    <View style={[styles.colorView, { backgroundColor: color }]}>
-      <View style={styles.textWrapper}>
-        {name && <Text style={styles.text}>{name}</Text>}
-        <Text style={styles.text}>{color}</Text>
-      </View>
+    <View style={[styles.colorBlock, { backgroundColor: color }]}>
+      {label && <Text style={styles.colorLabel}>{label}</Text>}
+      <Text style={styles.colorCode}>{color}</Text>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 16,
+    backgroundColor: '#fafafa',
   },
-  img: {
-    height: 300,
-    objectFit: 'contain',
-
+  header: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    marginVertical: 20,
+  },
+  image: {
     width: '100%',
-    marginVertical: 10,
+    height: 300,
+    resizeMode: 'contain',
+    borderRadius: 10,
+    marginBottom: 20,
   },
-  row: {
+  section: {
+    marginTop: 20,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    marginBottom: 10,
+    color: '#333',
+  },
+  grid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
-  colorView: {
-    minHeight: Dimensions.get('window').width / 3,
-    minWidth: Dimensions.get('window').width / 3,
+  palette: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  colorBlock: {
+    width: Dimensions.get('window').width / 3 - 20,
+    height: 100,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 10,
+    padding: 8,
   },
-  textWrapper: {
-    backgroundColor: 'rgba(251,251,251,0.47)',
-    paddingVertical: 5,
-    paddingHorizontal: 15,
-    borderRadius: 5,
+  colorLabel: {
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 4,
+    textShadowColor: '#000',
+    textShadowOffset: { width: 0.5, height: 0.5 },
+    textShadowRadius: 2,
   },
-  text: {
+  colorCode: {
+    color: '#fff',
+    fontWeight: '500',
+    fontSize: 12,
     textAlign: 'center',
-    fontSize: 24,
-    fontWeight: Platform.OS === 'ios' ? 500 : 'semibold',
-    color: '#202020',
-  },
-  title: {
-    fontSize: 36,
-    color: '#202020',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 0.5, height: 0.5 },
+    textShadowRadius: 2,
   },
 });

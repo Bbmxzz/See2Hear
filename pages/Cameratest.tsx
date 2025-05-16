@@ -31,7 +31,7 @@ type Props = {
   navigation: HomeScreenNavigationProp;
   route: {
     params: {
-      feature: 'Scantext' | 'QRScanner';
+      feature: 'Scantext' | 'ColorDetector' | 'QRScanner';
     };
   };
 };
@@ -45,13 +45,14 @@ export default function Cameratest({ navigation, route }: Props): JSX.Element {
   const [imageSource, setImageSource] = useState('');
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
 
-  // Modify featureToScreen to return explicit screen names
   const featureToScreen = (
-    feature: 'Scantext' | 'QRScanner'
-  ): 'Scantext' | 'QRScanner' => { 
+    feature: 'Scantext' | 'ColorDetector' | 'QRScanner'
+  ): 'Scantext' | 'ColorDetector' | 'QRScanner' => { 
     switch (feature) {
       case 'Scantext':
         return 'Scantext';
+        case 'ColorDetector':
+        return 'ColorDetector';
       case 'QRScanner':
         return 'QRScanner';
       default:
@@ -266,28 +267,28 @@ const styles = StyleSheet.create({
   },
   retakeBtn: {
     backgroundColor: '#fff',
-    padding: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#77c3ec',
+    flex: 1,
+    paddingVertical: 15,
+    borderRadius: 8,
+    marginHorizontal: 5,
+    alignItems: 'center'
   },
   retakeText: {
     color: '#77c3ec',
     fontWeight: '500',
+    fontSize: 16,
   },
   useBtn: {
     backgroundColor: '#77c3ec',
-    padding: 10,
-    justifyContent: 'center',
+    flex: 1,
+    paddingVertical: 15,
+    borderRadius: 8,
+    marginHorizontal: 5,
     alignItems: 'center',
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: 'white',
   },
   useText: {
     color: 'white',
     fontWeight: '500',
+    fontSize: 16,
   },
 });

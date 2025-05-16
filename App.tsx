@@ -15,13 +15,13 @@ import QRScanner from './pages/QRScanner';
 
 export type RootStackParamList = {
   Login: undefined;
-  Cameratest: { feature: 'Scantext' | 'QRScanner' };
+  Cameratest: { feature: 'Scantext'| 'ColorDetector' | 'QRScanner' };
   Speech:undefined;
   Signup: undefined;
   Scantext: { imagePath: string };
   Forgotpass: undefined;
   Homepage: undefined;
-  ColorDetector: undefined;
+  ColorDetector: { imagePath: string };
   QRScanner: { imagePath: string };
   Translate: undefined;
 };
