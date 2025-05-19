@@ -6,7 +6,6 @@ import {
   Image,
   ScrollView,
   Dimensions,
-  Platform,
 } from 'react-native';
 import {
   getAverageColor,

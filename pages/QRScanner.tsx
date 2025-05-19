@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import BarcodeScanning from '@react-native-ml-kit/barcode-scanning';
 import axios from 'axios';
+import Tts from 'react-native-tts';
 
 type Props = {
   route: { params: { imagePath: string }};

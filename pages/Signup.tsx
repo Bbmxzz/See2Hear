@@ -13,6 +13,7 @@ import { RootStackParamList } from '../App';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import axios from 'axios';
+import Tts from 'react-native-tts';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -33,10 +34,12 @@ export default function Signup({ navigation }: Props) {
   const handleSignup = async () => {
     if (!email || !password || !confirmpass) {
       Alert.alert('Please fill in all fields');
+      Tts.speak('Please fill in all fields');
       return;
     }
     if (password !== confirmpass) {
       Alert.alert('Password do not match');
+      Tts.speak('Password do not match');
       return;
     }
     try {
@@ -47,15 +50,19 @@ export default function Signup({ navigation }: Props) {
 
       if (res.data.success) {
         Alert.alert('Signup successful');
+        Tts.speak('Signup successful');
         navigation.navigate('Login');
       } else {
         Alert.alert('Signup Failed', res.data.message || '');
+        Tts.speak('Signup failed');
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         if (err.response) {
           if (err.response.status === 409) {
             Alert.alert('Email already exists');
+            Tts.speak('Email already exists');
+            
           } else {
             Alert.alert('Error', err.response.data.message || 'Could not connect to server');
           }
@@ -125,7 +132,10 @@ export default function Signup({ navigation }: Props) {
 
         <View style={styles.bottomTextContainer}>
           <Text style={styles.bottomText}>Have an account already? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <TouchableOpacity onPress={() => {
+            navigation.navigate('Login');
+            Tts.speak('Have an account already');
+          }}>
             <Text style={styles.link}>Login</Text>
           </TouchableOpacity>
         </View>

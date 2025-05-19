@@ -19,7 +19,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { RootStackParamList } from '../App';
 import Tts from 'react-native-tts';
 
-Tts.setDefaultLanguage('en-GB');
+Tts.setDefaultLanguage('en-US');
 Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact');
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
@@ -51,7 +51,7 @@ export default function Cameratest({ navigation, route }: Props): JSX.Element {
     switch (feature) {
       case 'Scantext':
         return 'Scantext';
-        case 'ColorDetector':
+      case 'ColorDetector':
         return 'ColorDetector';
       case 'QRScanner':
         return 'QRScanner';
@@ -90,6 +90,7 @@ export default function Cameratest({ navigation, route }: Props): JSX.Element {
   };
 
   const uploadFromLibrary = () => {
+    Tts.speak('Upload a photo');
     launchImageLibrary({ mediaType: 'photo' }, (response) => {
       if (response.assets && response.assets.length > 0) {
         const asset = response.assets[0];
@@ -103,6 +104,7 @@ export default function Cameratest({ navigation, route }: Props): JSX.Element {
             },
             (error) => {
               console.error('Failed to get image size from gallery:', error);
+              Tts.speak('Failed to get image size from gallery');
               setImageSource(path);
             }
           );
@@ -152,7 +154,10 @@ export default function Cameratest({ navigation, route }: Props): JSX.Element {
           {!showCamera && imageSource === '' && (
             <View style={styles.backButton}>
               <Pressable
-                onPress={() => setShowCamera(true)}
+                onPress={() => {
+                  setShowCamera(true);
+                  Tts.speak('Take a photo');
+                }}
                 style={({ pressed }) => [
                   styles.takeaPhotoBtn,
                   pressed && styles.takeaPhotoBtnPressed,
@@ -180,18 +185,20 @@ export default function Cameratest({ navigation, route }: Props): JSX.Element {
                   onPress={() => {
                     setImageSource('');
                     setImageSize({ width: 0, height: 0 });
+                    Tts.speak('Retake');
                   }}
                 >
                   <Text style={styles.retakeText}>Retake</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.useBtn}
-                  onPress={() =>
+                  onPress={() => {
                     navigation.navigate(
                       featureToScreen(route.params.feature), 
                       { imagePath: imageSource }
-                    )
-                  }
+                    );
+                    Tts.speak('Use photo');
+                  }}
                 >
                   <Text style={styles.useText}>Use Photo</Text>
                 </TouchableOpacity>
@@ -234,7 +241,9 @@ const styles = StyleSheet.create({
   },
   backText: {
     color: 'white',
-    fontWeight: '500',
+    fontWeight: 'bold',
+    fontSize: 20,
+    
   },
   buttonContainer: {
     backgroundColor: 'rgba(0,0,0,0.2)',

@@ -8,6 +8,7 @@ import {
 import Icon from 'react-native-vector-icons/FontAwesome5'; 
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
+import Tts from 'react-native-tts';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -18,13 +19,19 @@ type Props = {
   navigation: HomeScreenNavigationProp;
 };
 
+Tts.setDefaultLanguage('en-US');
+Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact')
+
 export default function Homepage({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.buttons}>
         <TouchableOpacity
           style={styles.feature}
-          onPress={() => navigation.navigate('Cameratest', { feature: 'Scantext' })}
+          onPress={() => {
+            Tts.speak('Scan text');
+            navigation.navigate('Cameratest', { feature: 'Scantext' });
+          }}
         >
           <Icon name="search" size={28} color="#FBF8EF" />
           <Text style={styles.textFeature}>Scan Text</Text>
@@ -33,7 +40,10 @@ export default function Homepage({ navigation }: Props) {
       <View style={styles.buttons}>
         <TouchableOpacity
           style={styles.feature}
-          onPress={() => navigation.navigate('Cameratest', { feature: 'ColorDetector' })}
+          onPress={() => {
+            Tts.speak('Color detect');
+            navigation.navigate('Cameratest', { feature: 'ColorDetector' });
+          }}
         >
           <Icon name="palette" size={28} color="#FBF8EF" />
           <Text style={styles.textFeature}>Detect Color</Text>
@@ -42,7 +52,10 @@ export default function Homepage({ navigation }: Props) {
       <View style={styles.buttons}>
         <TouchableOpacity
           style={styles.feature}
-          onPress={() => navigation.navigate('Translate')}
+          onPress={() => {
+            Tts.speak('Translate');
+            navigation.navigate('Translate');
+          }}
         >
           <Icon name="globe" size={28} color="#FBF8EF" />
           <Text style={styles.textFeature}>Translate</Text>
@@ -51,7 +64,10 @@ export default function Homepage({ navigation }: Props) {
       <View style={styles.buttons}>
         <TouchableOpacity
           style={styles.feature}
-          onPress={() => navigation.navigate('Cameratest', { feature: 'QRScanner' })}
+          onPress={() => {
+            Tts.speak('Scan QR code or barcode.');
+            navigation.navigate('Cameratest', { feature: 'QRScanner' }); 
+          }}
         >
           <Icon name="qrcode" size={28} color="#FBF8EF" />
 

@@ -11,7 +11,7 @@ import Homepage from './pages/Homepage';
 import ColorDetector from './pages/ColorDetector';
 import Translate from './pages/Translate';
 import QRScanner from './pages/QRScanner';
-// import ImageLabelingScreen from './pages/ImageLabelingScreen';
+import microphonetest from './pages/microphone';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -24,6 +24,7 @@ export type RootStackParamList = {
   ColorDetector: { imagePath: string };
   QRScanner: { imagePath: string };
   Translate: undefined;
+  microphonetest: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -42,7 +43,7 @@ export default function App() {
         <Stack.Screen name="ColorDetector" component={ColorDetector}/>
         <Stack.Screen name="QRScanner" component={QRScanner}/>
         <Stack.Screen name="Translate" component={Translate}/>
-        {/* <Stack.Screen name="ImageLabelingScreen" component={ImageLabelingScreen}/> */}
+        <Stack.Screen name="microphonetest" component={microphonetest}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

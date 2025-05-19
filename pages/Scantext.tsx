@@ -96,7 +96,7 @@ export default function Scantext({ route }: Props) {
   const handleSpeak = () => {
     const language = recognizedText.some((text) => /[a-zA-Z]/.test(text)) ? 'en-US' : 'ja-JP';
     Tts.setDefaultLanguage(language);
-    Tts.setDefaultRate(language === 'en-US' ? 0.3 : 0.8);
+    Tts.setDefaultRate(language === 'en-US' ? 0.5 : 0.7);
     Tts.speak(recognizedText.join(' '));
   };
 

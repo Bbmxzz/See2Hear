@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Button,
   Image,
   Alert,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { RootStackParamList } from '../App';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import axios from 'axios';
+import Tts from 'react-native-tts';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -36,11 +36,12 @@ export default function Login({ navigation }: Props) {
         password,
       });
       if (res.data.success){
-        Alert.alert('Login successful');
+        Tts.speak('Login succesful');
         navigation.navigate('Homepage');
       }
     } catch (err) {
       Alert.alert('Login failed');
+      Tts.speak('Login failed');
     }
   };
 
@@ -87,20 +88,25 @@ export default function Login({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}
-        >
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
           <Text style={styles.loginButtonText}>Login</Text>
         </TouchableOpacity>
 
         <View style={styles.bottomTextContainer}>
-          <TouchableOpacity onPress={() => navigation.navigate('Forgotpass')}>
+          <TouchableOpacity onPress={() => {
+            navigation.navigate('Forgotpass');
+            Tts.speak('Forgot your password?');
+          }}>
             <Text style={styles.link}>Forgot Password?</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.bottomTextContainer}>
           <Text style={styles.bottomText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+          <TouchableOpacity onPress={() => {
+            navigation.navigate('Signup');
+            Tts.speak('Go to signup page.')
+          }}>
             <Text style={styles.link}>Signup</Text>
           </TouchableOpacity>
         </View>

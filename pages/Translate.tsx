@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     }),
   },
   picker: {
-    height: 50,
+    height: 55,
     width: '100%',
     color: '#22668D',
   },
