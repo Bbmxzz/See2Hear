@@ -88,7 +88,8 @@ export default function Login({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}
+        >
           <Text style={styles.loginButtonText}>Login</Text>
         </TouchableOpacity>
 

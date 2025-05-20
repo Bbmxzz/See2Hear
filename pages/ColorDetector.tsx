@@ -13,6 +13,7 @@ import {
   getSegmentsAverageColor,
   type PaletteResult,
 } from '@somesoap/react-native-image-palette';
+import chroma from 'chroma-js';
 
 type Props = {
   route: {
@@ -67,14 +68,21 @@ export default function ColorDetector({ route }: Props) {
       <Text style={styles.sectionTitle}>Segmented Average Colors</Text>
       <View style={styles.grid}>
         {avgSectors.map((color, idx) => (
-          <ColorBlock key={idx} color={color} label={`#${idx + 1}`} />
+          <ColorBlock
+            key={idx}
+            color={color}
+            label={`#${idx + 1} - ${getSimpleColorName(color)}`}
+          />
         ))}
       </View>
 
       {averageColor && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Overall Average Color</Text>
-          <ColorBlock color={averageColor} />
+          <ColorBlock
+            color={averageColor}
+            label={getSimpleColorName(averageColor)}
+          />
         </View>
       )}
 
@@ -83,7 +91,11 @@ export default function ColorDetector({ route }: Props) {
           <Text style={styles.sectionTitle}>Palette</Text>
           <View style={styles.palette}>
             {Object.entries(palette).map(([name, color]) => (
-              <ColorBlock key={name} color={color} label={name} />
+              <ColorBlock
+                key={name}
+                color={color}
+                label={`${name} - ${getSimpleColorName(color)}`}
+              />
             ))}
           </View>
         </View>
@@ -99,6 +111,26 @@ function ColorBlock({ color, label }: { color: string; label?: string }) {
       <Text style={styles.colorCode}>{color}</Text>
     </View>
   );
+}
+
+// 🟡 ชื่อสีง่ายๆจากค่า HSL
+function getSimpleColorName(hex: string): string {
+  const [h, s, l] = chroma(hex).hsl();
+
+  if (s < 0.15) {
+    if (l < 0.2) return 'black';
+    if (l > 0.8) return 'white';
+    return 'gray';
+  }
+
+  if (h >= 0 && h < 20) return l < 0.4 ? 'dark red' : 'red';
+  if (h >= 20 && h < 40) return 'orange';
+  if (h >= 40 && h < 65) return 'yellow';
+  if (h >= 65 && h < 170) return 'green';
+  if (h >= 170 && h < 260) return 'blue';
+  if (h >= 260 && h < 290) return 'purple';
+  if (h >= 290 && h < 330) return 'pink';
+  return 'red';
 }
 
 const styles = StyleSheet.create({
@@ -156,6 +188,7 @@ const styles = StyleSheet.create({
     textShadowColor: '#000',
     textShadowOffset: { width: 0.5, height: 0.5 },
     textShadowRadius: 2,
+    textAlign: 'center',
   },
   colorCode: {
     color: '#fff',

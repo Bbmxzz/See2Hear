@@ -132,7 +132,6 @@ const Translate = () => {
             <Text style={styles.resultText}>{translatedText}</Text>
           </ScrollView>
 
-          {/* ปุ่มอ่านออกเสียง */}
           <TouchableOpacity
             style={styles.speakButton}
             onPress={handleSpeak}

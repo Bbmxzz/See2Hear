@@ -11,7 +11,7 @@ import Homepage from './pages/Homepage';
 import ColorDetector from './pages/ColorDetector';
 import Translate from './pages/Translate';
 import QRScanner from './pages/QRScanner';
-import microphonetest from './pages/microphone';
+import Resetpass from './pages/Resetpass'
 
 export type RootStackParamList = {
   Login: undefined;
@@ -24,7 +24,7 @@ export type RootStackParamList = {
   ColorDetector: { imagePath: string };
   QRScanner: { imagePath: string };
   Translate: undefined;
-  microphonetest: undefined;
+  Resetpass: { email: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -43,7 +43,7 @@ export default function App() {
         <Stack.Screen name="ColorDetector" component={ColorDetector}/>
         <Stack.Screen name="QRScanner" component={QRScanner}/>
         <Stack.Screen name="Translate" component={Translate}/>
-        <Stack.Screen name="microphonetest" component={microphonetest}/>
+        <Stack.Screen name="Resetpass" component={Resetpass}/>
       </Stack.Navigator>
     </NavigationContainer>
   );
