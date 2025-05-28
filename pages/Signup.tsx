@@ -19,12 +19,13 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   'Signup'
 >;
-
 type Props = {
   navigation: HomeScreenNavigationProp;
 };
 
 export default function Signup({ navigation }: Props) {
+  Tts.setDefaultLanguage('en-US');
+  Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact')
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmpass, setconfirmpass] = useState('');
@@ -79,7 +80,6 @@ export default function Signup({ navigation }: Props) {
     <LinearGradient colors={['#8ECDDD', '#22668D']} style={styles.linearGradient}>
       <View style={styles.card}>
         <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-
         <TextInput
           placeholder="example@gmail.com"
           placeholderTextColor="rgb(77, 118, 141)"
@@ -89,9 +89,7 @@ export default function Signup({ navigation }: Props) {
           autoCapitalize="none"
           spellCheck={false}
         />
-
         <View style={{ marginVertical: 12 }} />
-
         <View style={styles.passwordContainer}>
           <TextInput
             secureTextEntry={hidePassword1}
@@ -107,9 +105,7 @@ export default function Signup({ navigation }: Props) {
             <Icon name={hidePassword1 ? 'eye-off' : 'eye'} size={24} color="rgb(34, 102, 141)" />
           </TouchableOpacity>
         </View>
-
         <View style={{ marginVertical: 12 }} />
-
         <View style={styles.passwordContainer}>
           <TextInput
             secureTextEntry={hidePassword2}
@@ -125,16 +121,14 @@ export default function Signup({ navigation }: Props) {
             <Icon name={hidePassword2 ? 'eye-off' : 'eye'} size={24} color="rgb(34, 102, 141)" />
           </TouchableOpacity>
         </View>
-
         <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
           <Text style={styles.signupButtonText}>Signup</Text>
         </TouchableOpacity>
-
         <View style={styles.bottomTextContainer}>
           <Text style={styles.bottomText}>Have an account already? </Text>
           <TouchableOpacity onPress={() => {
             navigation.navigate('Login');
-            Tts.speak('Have an account already');
+            Tts.speak('Go to login page');
           }}>
             <Text style={styles.link}>Login</Text>
           </TouchableOpacity>
@@ -161,7 +155,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
     elevation: 4,
-    height: '85%',
+    minHeight: '85%',
     justifyContent: 'center',
   },
   input: {
@@ -190,7 +184,7 @@ const styles = StyleSheet.create({
     color: 'rgb(34, 102, 141)',
   },
   signupButton: {
-    backgroundColor: 'rgb(255, 180, 51)',
+    backgroundColor: '#FFC45B',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',

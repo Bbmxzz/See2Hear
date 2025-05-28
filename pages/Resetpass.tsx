@@ -15,6 +15,7 @@ import { RootStackParamList } from '../App';
 import Feather from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
 import Tts from 'react-native-tts';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Resetpass'>;
 type RouteProps = RouteProp<RootStackParamList, 'Resetpass'>;
@@ -25,7 +26,10 @@ type Props = {
 };
 
 export default function Resetpass({ navigation, route }: Props) {
+    Tts.setDefaultLanguage('en-US');
+    Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact')
     const [password, setPassword] = useState('');
+    const [hidePassword,setHidePassword] = useState(true);
     const email = route.params.email;
 
     const handleResetPassword = async () => {
@@ -70,14 +74,25 @@ export default function Resetpass({ navigation, route }: Props) {
                     <Text style={styles.subtitle}>
                         Please enter your new password for security
                     </Text>
-                    <TextInput
-                        placeholder="New password"
-                        placeholderTextColor="rgb(77,118,141)"
-                        secureTextEntry
-                        value={password}
-                        onChangeText={setPassword}
-                        style={styles.input}
-                    />
+                    <View style={styles.input}>
+                        <TextInput
+                            placeholder="New password"
+                            placeholderTextColor="rgb(77,118,141)"
+                            secureTextEntry = {hidePassword}
+                            value={password}
+                            onChangeText={setPassword}
+                            style={styles.passwordInput}
+                        />
+                        <TouchableOpacity onPress={() => setHidePassword(!hidePassword)}>
+                            <Icon 
+                                name={hidePassword ? 'eye-off' : 'eye'}
+                                size={24}
+                                color="rgb(34, 102, 141)"
+                            />
+                        </TouchableOpacity>
+                    </View>
+                    <View style={{ marginVertical: 10 }} />
+                    
                     <TouchableOpacity
                         style={styles.resetButton}
                         onPress={handleResetPassword}
@@ -132,19 +147,22 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     input: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: 'white',
-        borderRadius: 12,
-        height: 50,
-        paddingHorizontal: 18,
-        fontSize: 16,
-        color: '#22668D',
+        borderRadius: 8,
+        height: 45,
+        paddingHorizontal: 15,
         borderWidth: 2,
-        borderColor: 'rgb(34, 102, 141)',
-        width: '100%',
-        marginBottom: 20,
+        borderColor:'rgb(34, 102, 141)',
+    },
+    passwordInput: {
+        flex: 1,
+        fontSize: 14,
+        color: 'rgb(34, 102, 141)',
     },
     resetButton: {
-        backgroundColor: 'rgb(255, 180,51)',
+        backgroundColor: '#FFC45B',
         paddingVertical: 14,
         borderRadius: 12,
         alignItems: 'center',

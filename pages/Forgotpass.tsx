@@ -25,6 +25,8 @@ type Props = {
 };
 
 export default function Forgotpass({ navigation }: Props) {
+  Tts.setDefaultLanguage('en-US');
+  Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact')
   const [email, setEmail] = useState('');
 
   const handleEmailCheck = async () => {
@@ -147,7 +149,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   resetButton: {
-    backgroundColor: 'rgb(255, 180, 51)',
+    backgroundColor: '#FFC45B',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',

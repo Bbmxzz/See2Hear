@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     minHeight: Dimensions.get('window').height,
     alignItems: 'center',
-    backgroundColor: '#FBF8EF',
+    backgroundColor: '#FFF9E5',
     padding: 20,
   },
   inner: {

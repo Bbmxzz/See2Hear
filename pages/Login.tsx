@@ -19,19 +19,19 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   'Login'
 >;
-
 type Props = {
   navigation: HomeScreenNavigationProp;
 };
 
 export default function Login({ navigation }: Props) {
+  Tts.setDefaultLanguage('en-US');
+  Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact')
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [hidePassword, setHidePassword] = useState(true);
-
   const handleLogin = async () => {
     try{
-      const res = await axios.post('http:192.168.11.193:8080/login',{
+      const res = await axios.post('http://192.168.11.193:8080/login',{
         email,
         password,
       });
@@ -44,7 +44,6 @@ export default function Login({ navigation }: Props) {
       Tts.speak('Login failed');
     }
   };
-
   return (
     <LinearGradient
       colors={['#8ECDDD', '#22668D']}
@@ -65,9 +64,7 @@ export default function Login({ navigation }: Props) {
           autoCapitalize="none"
           spellCheck={false}
         />
-
         <View style={{ marginVertical: 12 }} />
-
         <View style={styles.passwordContainer}>
           <TextInput
             secureTextEntry={hidePassword}
@@ -87,12 +84,9 @@ export default function Login({ navigation }: Props) {
             />
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}
-        >
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
           <Text style={styles.loginButtonText}>Login</Text>
         </TouchableOpacity>
-
         <View style={styles.bottomTextContainer}>
           <TouchableOpacity onPress={() => {
             navigation.navigate('Forgotpass');
@@ -101,7 +95,6 @@ export default function Login({ navigation }: Props) {
             <Text style={styles.link}>Forgot Password?</Text>
           </TouchableOpacity>
         </View>
-
         <View style={styles.bottomTextContainer}>
           <Text style={styles.bottomText}>Don't have an account? </Text>
           <TouchableOpacity onPress={() => {
@@ -133,7 +126,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
     elevation: 4,
-    height: '85%',
+    // height: '85%',
+    minHeight: '85%',
     justifyContent: 'center',
   },
   input: {
@@ -162,7 +156,7 @@ const styles = StyleSheet.create({
     color: 'rgb(34, 102, 141)',
   },
   loginButton: {
-    backgroundColor:'rgb(255, 180, 51)',
+    backgroundColor:'#FFC45B',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',

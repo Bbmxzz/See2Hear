@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, JSX } from 'react';
+
 import {
   View,
   Text,
@@ -6,17 +7,17 @@ import {
   Image,
   TouchableOpacity,
   Image as RNImage,
-  Pressable,
+  Pressable
 } from 'react-native';
 import {
   Camera,
   useCameraDevice,
+  useCameraDevices,
 } from 'react-native-vision-camera';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { RootStackParamList } from '../App';
 import Tts from 'react-native-tts';
-import PhotoManipulator, { RotationMode } from 'react-native-photo-manipulator';
 
 Tts.setDefaultLanguage('en-US');
 Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact');
@@ -35,73 +36,56 @@ type Props = {
   };
 };
 
-export default function Cameratest({ navigation, route }: Props) {
-  Tts.setDefaultLanguage('en-US');
-  Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact')
+export default function Cameratest({ navigation, route }: Props): JSX.Element {
   const camera = useRef<Camera>(null);
+  const devices = useCameraDevices();
   const device = useCameraDevice('back');
 
   const [showCamera, setShowCamera] = useState(false);
   const [imageSource, setImageSource] = useState('');
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
 
+  const featureToScreen = (
+    feature: 'Scantext' | 'ColorDetector' | 'QRScanner'
+  ): 'Scantext' | 'ColorDetector' | 'QRScanner' => { 
+    switch (feature) {
+      case 'Scantext':
+        return 'Scantext';
+      case 'ColorDetector':
+        return 'ColorDetector';
+      case 'QRScanner':
+        return 'QRScanner';
+      default:
+        throw new Error('Unknown feature');
+    }
+  };
+
   useEffect(() => {
     async function getPermission() {
-      await Camera.requestCameraPermission();
+      const newCameraPermission = await Camera.requestCameraPermission();
+      console.log(newCameraPermission);
     }
     getPermission();
   }, []);
 
-  const featureToScreen = (
-    feature: 'Scantext' | 'ColorDetector' | 'QRScanner'
-  ) => feature;
-
   const capturePhoto = async () => {
     if (camera.current !== null) {
       const photo = await camera.current.takePhoto({});
-      const originalPath = `file://${photo.path}`;
+      const path = photo.path;
 
-      try {
-        const rotatedPath = originalPath;
-
-        RNImage.getSize(
-          rotatedPath,
-          async (rotatedWidth, rotatedHeight) => {
-
-            const cropRegion = {
-              x: rotatedWidth * 0.3,
-              y: rotatedHeight * 0.3,
-              width: rotatedWidth * 0.4,
-              height: rotatedHeight * 0.4,
-            };
-
-            const croppedPath = await PhotoManipulator.crop(rotatedPath, cropRegion);
-
-            RNImage.getSize(
-              croppedPath,
-              (finalWidth, finalHeight) => {
-                setImageSource(croppedPath);
-                setImageSize({ width: finalWidth, height: finalHeight });
-                setShowCamera(false);
-              },
-              (error) => {
-                console.error('Final getSize failed:', error);
-                setImageSource(croppedPath);
-                setShowCamera(false);
-              }
-            );
-          },
-          (err) => {
-            console.error('GetSize after rotate failed:', err);
-            setImageSource(originalPath);
-            setShowCamera(false);
-          }
-        );
-      } catch (e) {
-        console.error('Capture process failed:', e);
-        setImageSource(originalPath);
-        setShowCamera(false);
-      }
+      RNImage.getSize(
+        `file://${path}`,
+        (width, height) => {
+          setImageSource(path);
+          setImageSize({ width, height });
+          setShowCamera(false);
+        },
+        (error) => {
+          console.error('Failed to get image size:', error);
+          setImageSource(path);
+          setShowCamera(false);
+        }
+      );
     }
   };
 
@@ -110,17 +94,18 @@ export default function Cameratest({ navigation, route }: Props) {
     launchImageLibrary({ mediaType: 'photo' }, (response) => {
       if (response.assets && response.assets.length > 0) {
         const asset = response.assets[0];
-        const uri = asset.uri || '';
-        if (uri) {
+        const path = asset.uri?.replace('file://', '') || '';
+        if (path) {
           RNImage.getSize(
-            uri,
+            `file://${path}`,
             (width, height) => {
-              setImageSource(uri);
+              setImageSource(path);
               setImageSize({ width, height });
             },
-            (err) => {
-              console.error('Gallery getSize failed:', err);
-              setImageSource(uri);
+            (error) => {
+              console.error('Failed to get image size from gallery:', error);
+              Tts.speak('Failed to get image size from gallery');
+              setImageSource(path);
             }
           );
         }
@@ -128,7 +113,9 @@ export default function Cameratest({ navigation, route }: Props) {
     });
   };
 
-  if (device == null) return <Text>Camera not available</Text>;
+  if (device == null) {
+    return <Text>Camera not available</Text>;
+  }
 
   return (
     <View style={styles.container}>
@@ -141,25 +128,28 @@ export default function Cameratest({ navigation, route }: Props) {
             isActive={showCamera}
             photo={true}
           />
-          <View style={styles.overlayBox} />
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.camButton} onPress={capturePhoto} />
+            <TouchableOpacity
+              style={styles.camButton}
+              onPress={capturePhoto}
+            />
           </View>
         </>
       ) : (
         <>
-          {imageSource !== '' && (
+          {imageSource !== '' ? (
             <Image
               style={[
                 styles.image,
-                imageSize.width > 0 && imageSize.height > 0 && {
-                  aspectRatio: imageSize.width / imageSize.height,
-                },
+                imageSize.width > 0 &&
+                  imageSize.height > 0 && {
+                    aspectRatio: imageSize.width / imageSize.height,
+                  },
               ]}
-              source={{ uri: imageSource }}
+              source={{ uri: `file://${imageSource}` }}
               resizeMode="contain"
             />
-          )}
+          ) : null}
 
           {!showCamera && imageSource === '' && (
             <View style={styles.backButton}>
@@ -204,7 +194,7 @@ export default function Cameratest({ navigation, route }: Props) {
                   style={styles.useBtn}
                   onPress={() => {
                     navigation.navigate(
-                      featureToScreen(route.params.feature),
+                      featureToScreen(route.params.feature), 
                       { imagePath: imageSource }
                     );
                     Tts.speak('Use photo');
@@ -226,7 +216,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFF9E5',
+    backgroundColor: 'rgb(251, 248, 239)',
   },
   backButton: {
     flex: 1,
@@ -236,7 +226,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   takeaPhotoBtn: {
-    backgroundColor: '#4D768D',
+    backgroundColor: 'rgb(34, 102, 141)',
     height: '47.5%',
     marginBottom: '2.5%',
     marginTop: '2.5%',
@@ -247,15 +237,17 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   takeaPhotoBtnPressed: {
-    backgroundColor: '#22668D',
+    backgroundColor: 'rgb(17, 75, 109)',
   },
   backText: {
     color: 'white',
     fontWeight: 'bold',
     fontSize: 20,
+    
   },
   buttonContainer: {
     backgroundColor: 'rgba(0,0,0,0.2)',
+    display: 'flex',
     flexDirection: 'row',
     position: 'absolute',
     justifyContent: 'center',
@@ -288,7 +280,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 8,
     marginHorizontal: 5,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   retakeText: {
     color: '#77c3ec',
@@ -307,16 +299,5 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '500',
     fontSize: 16,
-  },
-  overlayBox: {
-    position: 'absolute',
-    top: '30%',
-    left: '10%',
-    width: '80%',
-    height: '40%',
-    borderWidth: 2,
-    borderColor: 'white',
-    borderStyle: 'dashed',
-    zIndex: 99,
   },
 });

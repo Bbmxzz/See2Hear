@@ -213,5 +213,6 @@ func main() {
 	http.HandleFunc("/reset-password", resetPasswordHandler(db))
 
 	log.Println("Go backend running on http://192.168.11.193:8080")
+	// log.Println("Go backend running on http://10.150.15.26:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

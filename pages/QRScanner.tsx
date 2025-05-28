@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,17 +7,18 @@ import {
   ScrollView,
   ActivityIndicator,
   Dimensions,
-  Linking,
   TouchableOpacity,
+  Linking,
+  AccessibilityInfo,
 } from 'react-native';
 import BarcodeScanning from '@react-native-ml-kit/barcode-scanning';
 import axios from 'axios';
 import Tts from 'react-native-tts';
+import Icon from 'react-native-vector-icons/FontAwesome5';
 
 type Props = {
-  route: { params: { imagePath: string }};
+  route: { params: { imagePath: string } };
 };
-
 interface ProductInfo {
   name: string;
   brand: string;
@@ -30,8 +31,8 @@ export default function ScanBarcode({ route }: Props) {
   const [barcodes, setBarcodes] = useState<any[]>([]);
   const [products, setProducts] = useState<Record<string, ProductInfo | null>>({});
   const [loading, setLoading] = useState(true);
-  const [imageDisplaSize, setImageDisplaySize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
-
+  const [imageSize, setImageSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const [lastSpeakText, setLastSpeakText] = useState<string>('');
   const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
 
@@ -40,156 +41,297 @@ export default function ScanBarcode({ route }: Props) {
       `file://${imagePath}`,
       (width, height) => {
         const ratio = width / height;
-        let displayWidth = screenWidth;
+        let displayWidth = screenWidth * 0.95;
         let displayHeight = displayWidth / ratio;
 
-        if (displayHeight > screenHeight * 0.7) {
-          displayHeight = screenHeight * 0.7;
+        if (displayHeight > screenHeight * 0.5) {
+          displayHeight = screenHeight * 0.5;
           displayWidth = displayHeight * ratio;
         }
-        setImageDisplaySize({ width: displayWidth, height: displayHeight });
+        setImageSize({ width: displayWidth, height: displayHeight });
       },
-      (error) => console.error('Error loading image size:', error)
+      (error) => console.error('Failed to get image size:', error)
     );
-    const scan = async () => {
+
+    const scanAndFetch = async () => {
       try {
         const result = await BarcodeScanning.scan(`file://${imagePath}`);
         setBarcodes(result);
 
-        const productMap: Record<string, ProductInfo | null> = {};
+        const productData: Record<string, ProductInfo | null> = {};
+
         for (const barcode of result) {
           if (isBarcode(barcode.value)) {
-            const product = await getProductInfo(barcode.value);
-            productMap[barcode.value] = product;
+            const product = await fetchProductInfo(barcode.value);
+            productData[barcode.value] = product;
           } else {
-            productMap[barcode.value] = null;
+            productData[barcode.value] = null;
           }
         }
-        setProducts(productMap);
+
+        setProducts(productData);
+
+        if (result.length > 0) {
+          const first = result[0];
+          if (isBarcode(first.value) && productData[first.value]) {
+            const p = productData[first.value];
+            setLastSpeakText(`${p?.name}. Brand: ${p?.brand}. Quantity: ${p?.quantity}.`);
+          } else {
+            setLastSpeakText(first.value);
+          }
+        } else {
+          setLastSpeakText('No barcodes detected.');
+        }
       } catch (e) {
-        console.warn('Error scanning barcode:', e);
+        console.warn('Barcode scan error:', e);
+        setLastSpeakText('Failed to scan barcodes.');
       } finally {
         setLoading(false);
       }
     };
-    scan();
+    scanAndFetch();
   }, [imagePath]);
 
-  const isBarcode = (value: string) => {
-    return /^[0-9]{8,14}$/.test(value);
-  };
-  const isValidUrl = (text: string) => {
-    return /^https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=.]+$/.test(text);
-  };
+  const isBarcode = (value: string) => /^[0-9]{8,14}$/.test(value);
+  const isValidUrl = (text: string) => /^https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=.]+$/.test(text);
 
-  const getProductInfo = async (barcode: string): Promise<ProductInfo | null> => {
-    try{
+  const fetchProductInfo = async (barcode: string): Promise<ProductInfo | null> => {
+    try {
       const res = await axios.get(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
       if (res.data.status === 1) {
-        const product = res.data.product;
+        const p = res.data.product;
         return {
-          name: product.product_name || 'Unknown',
-          brand: product.brands || 'Unknown',
-          image: product.imagefront_url || '',
-          quantity: product.quantity || 'Unknown',
+          name: p.product_name || 'Unknown product',
+          brand: p.brands || 'Unknown brand',
+          image: p.image_front_url || '',
+          quantity: p.quantity || 'N/A',
         };
-      } else {
-        return null;
       }
-    } catch (err) {
-      console.error('API error:', err);
+      return null;
+    } catch (error) {
+      console.error('API fetch error:', error);
       return null;
     }
   };
+
+  const speakText = (text: string) => {
+    Tts.stop();
+    Tts.speak(text);
+  };
+
   return (
-    <View style={{ flex:1, backgroundColor: '#FBF*EF' }}>
-      <ScrollView contentContainerStyle={styles.container}>
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.header}>Scanned Image</Text>
         <Image
-          source= {{uri: `file://${imagePath}` }}
-          style= {[styles.image, {width: imageDisplaSize.width-20 , height: imageDisplaSize.height}]}
+          source={{ uri: `file://${imagePath}` }}
+          style={[styles.image, { width: imageSize.width, height: imageSize.height }]}
+          resizeMode="contain"
+          accessible
+          accessibilityLabel="Scanned image"
         />
 
         {loading ? (
-          <ActivityIndicator size='large' color='#0000ff' style={{marginTop: 20}}/>
+          <ActivityIndicator size="large" color="#3178c6" style={{ marginTop: 30 }} />
         ) : (
-          barcodes.map((barcode, index) => {
-            const value = barcode.value;
-            const format = barcode.format;
-            const product = products[value];
-            const isLink = isValidUrl(value);
+          <>
+            <Text style={styles.subtitle}>Detected QR/Barcode</Text>
+            {barcodes.length === 0 && (
+              <Text style={styles.noBarcodesText}>No barcodes detected in this image.</Text>
+            )}
 
-            return (
-              <View key={index} style={styles.productInfo}>
-                <Text style={styles.barcodeText}>
-                  {value} ({format})
-                </Text>
+            {barcodes.map(({ value, format }, index) => {
+              const product = products[value];
+              const link = isValidUrl(value);
 
-                {isBarcode(value) ? (
-                  product ? (
-                    <>
-                      <Text style={styles.productText}>Product: {product.name}</Text>
-                      <Text style={styles.productText}>Brand: {product.brand}</Text>
-                      <Text style={styles.productText}>Quantity: {product.quantity}</Text>
-                      {product.image ? (
-                        <Image source={{uri: product.image}} style={styles.productImage}/>
-                      ) : null}
-                    </>
-                  ) : (
-                    <Text style={styles.productText}>No product info available.</Text>
-                  )
-                ) : isLink ? (
-                  <TouchableOpacity onPress={() => Linking.openURL(value)}>
-                    <Text style={[styles.productText, {color: '#007bff'}]}>
-                      Open Link →
+              return (
+                <View key={index} style={styles.card} accessible accessibilityRole="summary">
+                  <Text style={styles.barcodeValue}>
+                    {value} <Text style={styles.barcodeFormat}>({format})</Text>
+                  </Text>
+
+                  {isBarcode(value) ? (
+                    product ? (
+                      <>
+                        {product.image ? (
+                          <Image
+                            source={{ uri: product.image }}
+                            style={styles.productImage}
+                            accessible
+                            accessibilityLabel={`Product image of ${product.name}`}
+                          />
+                        ) : (
+                          <View style={styles.noImageBox}>
+                            <Text style={styles.noImageText}>No image available</Text>
+                          </View>
+                        )}
+
+                        <Text style={styles.productName}>{product.name}</Text>
+                        <Text style={styles.productBrand}>Brand: {product.brand}</Text>
+                        <Text style={styles.productQuantity}>Quantity: {product.quantity}</Text>
+                      </>
+                    ) : (
+                      <Text style={styles.noDataText}>No product info found.</Text>
+                    )
+                  ) : link ? (
+                    <Text
+                      style={styles.linkText}
+                      onPress={() => Linking.openURL(value)}
+                      accessible
+                      accessibilityRole="link"
+                      accessibilityLabel={`Open link ${value}`}
+                    >
+                      Open Link
                     </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <Text style={styles.productText}>Scanned Value: {value}</Text>
-                )}
-              </View>
-            );
-          })
+                  ) : (
+                    <Text style={styles.genericText}>Scanned value: {value}</Text>
+                  )}
+                </View>
+              );
+            })}
+          </>
         )}
-        <View style={{height: 100}}/>
+
+        <View style={{ height: 80 }} />
       </ScrollView>
+
+      <TouchableOpacity
+        style={styles.floatingSpeakButton}
+        onPress={() => speakText(lastSpeakText)}
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel="Read aloud scanned information"
+        accessibilityHint="Reads the scanned product or barcode information aloud"
+      >
+          <Icon name="volume-up" size={28} color="#FFF" />
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
+  screen: {
+    flex: 1,
+    backgroundColor: '#FFF9E5',
+    paddingTop: 60,
+  },
+  content: {
+    paddingHorizontal: 20,
     alignItems: 'center',
-    padding: 10,
+  },
+  header: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#22668D',
+    textAlign: 'center',
+    marginVertical: 20,
+  },
+  subtitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 30,
+    marginBottom: 12,
+    color: '#22668D',
+    alignSelf: 'flex-start',
   },
   image: {
-    borderRadius: 10,
-    marginTop: '10%',
+    borderRadius: 12,
+    backgroundColor: '#e1e9f5',
   },
-  productInfo: {
-    marginTop: 10,
-    padding: 15,
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOpacity: 5,
-    elevation: 2,
-  },
-  barcodeText: {
+  noBarcodesText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    color: '#999',
+    marginTop: 12,
+    fontStyle: 'italic',
+    alignSelf: 'center',
   },
-  productText: {
-    fontSize: 14,
-    color: '#333',
-    marginTop: 4,
+  card: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#00000020',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    elevation: 5,
+    alignItems: 'center',
+  },
+  barcodeValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#222',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  barcodeFormat: {
+    fontWeight: '400',
+    color: '#666',
   },
   productImage: {
-    width: 100,
-    height: 100,
-    marginTop: 10,
-    borderRadius: 8,
+    width: 180,
+    height: 180,
+    borderRadius: 14,
+    marginBottom: 14,
+    backgroundColor: '#fafafa',
   },
-})
+  noImageBox: {
+    width: 180,
+    height: 180,
+    borderRadius: 14,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  noImageText: {
+    color: '#bbb',
+    fontSize: 14,
+  },
+  productName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111',
+    textAlign: 'center',
+  },
+  productBrand: {
+    fontSize: 15,
+    color: '#555',
+    marginTop: 4,
+  },
+  productQuantity: {
+    fontSize: 14,
+    color: '#777',
+    marginTop: 2,
+  },
+  noDataText: {
+    fontSize: 16,
+    color: '#999',
+    fontStyle: 'italic',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  linkText: {
+    fontSize: 16,
+    color: '#3178c6',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  genericText: {
+    fontSize: 15,
+    color: '#444',
+  },
+
+  floatingSpeakButton: {
+    position: 'absolute',
+    bottom: 30,
+    right: 40,
+    backgroundColor: '#22668D',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
