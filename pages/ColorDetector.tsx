@@ -23,7 +23,6 @@ import Tts from 'react-native-tts';
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-
 type Props = {
   route: {
     params: {
@@ -42,7 +41,6 @@ export default function ColorDetector({ route }: Props) {
   const [avgSectors, setAvgSectors] = useState<string[]>([]);
   const [centerColor, setCenterColor] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
-
   useEffect(() => {
     getAverageColor(uri)
       .then((color) => {
@@ -50,7 +48,6 @@ export default function ColorDetector({ route }: Props) {
         Tts.speak(`Average color is ${getSimpleColorName(color)}`);
       })
       .catch(console.error);
-
     getPalette(uri)
       .then((result) => {
         setPalette(result);
@@ -63,7 +60,6 @@ export default function ColorDetector({ route }: Props) {
         Tts.speak(`Palette colors: ${spoken}`);
       })
       .catch(console.error);
-
     getSegmentsAverageColor(
       uri,
       [
@@ -81,7 +77,6 @@ export default function ColorDetector({ route }: Props) {
     )
       .then(setAvgSectors)
       .catch(console.error);
-
     getSegmentsAverageColor(uri, [{ fromX: 40, toX: 60, fromY: 40, toY: 60 }], {
       pixelSpacingAndroid: 2,
     })
@@ -93,7 +88,6 @@ export default function ColorDetector({ route }: Props) {
       })
       .catch(console.error);
   }, [uri]);
-
   return (
     <ScrollView
       style={styles.container}
@@ -101,7 +95,6 @@ export default function ColorDetector({ route }: Props) {
     >
       <Text style={styles.header}>Color Detector</Text>
       <Image source={{ uri }} style={styles.image} />
-
       {centerColor && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Center Color</Text>
@@ -112,7 +105,6 @@ export default function ColorDetector({ route }: Props) {
           />
         </View>
       )}
-
       <ToggleSection
         title="Show All Colors"
         expanded={showAll}
@@ -135,7 +127,6 @@ export default function ColorDetector({ route }: Props) {
                 ))}
               </View>
             </View>
-
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Palette</Text>
               <View style={styles.palette}>
@@ -198,9 +189,7 @@ function ColorBlock({
     Tts.setDefaultPitch(1.0);
     Tts.speak(label || color);
   };
-
   const textColor = chroma(color).luminance() < 0.5 ? '#FFF' : '#222';
-
   return (
     <TouchableOpacity
       style={[
@@ -220,7 +209,6 @@ function ColorBlock({
 
 function getSimpleColorName(hex: string): string {
   const [h, s, l] = chroma(hex).hsl();
-
   if (isNaN(h)) return 'White';
   if (s < 0.15) {
     if (l < 0.2) return 'Black';
@@ -228,17 +216,14 @@ function getSimpleColorName(hex: string): string {
     if (l < 0.7) return 'Gray';
     return 'Light Gray';
   }
-
   if (h >= 20 && h <= 50 && s < 0.5) {
     if (l < 0.3) return 'Dark Brown';
     if (l < 0.5) return 'Brown';
     if (l < 0.7) return 'Light Brown';
     return 'Tan';
   }
-
   if (h >= 30 && h <= 60 && s < 0.4 && l > 0.75) return 'Cream';
   if (h >= 30 && h <= 50 && s < 0.4 && l > 0.6 && l <= 0.75) return 'Beige';
-
   if (h >= 0 && h < 10) return l < 0.4 ? 'Dark Red' : 'Red';
   if (h >= 10 && h < 20) return 'Red-Orange';
   if (h >= 20 && h < 30) return 'Orange';

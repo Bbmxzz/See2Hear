@@ -1,22 +1,19 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Image,
   TouchableOpacity,
-  Image as RNImage,
   Pressable,
+  Dimensions,
+  SafeAreaView,
 } from 'react-native';
-import {
-  Camera,
-  useCameraDevice,
-} from 'react-native-vision-camera';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Camera, useCameraDevice } from 'react-native-vision-camera';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import Tts from 'react-native-tts';
-import PhotoManipulator, { RotationMode } from 'react-native-photo-manipulator';
 
 Tts.setDefaultLanguage('en-US');
 Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact');
@@ -30,14 +27,12 @@ type Props = {
   navigation: HomeScreenNavigationProp;
   route: {
     params: {
-      feature: 'Scantext' | 'ColorDetector' | 'QRScanner';
+      feature: 'Scantext' | 'ColorDetector' | 'QRScanner' | 'Translate';
     };
   };
 };
 
 export default function Cameratest({ navigation, route }: Props) {
-  Tts.setDefaultLanguage('en-US');
-  Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact')
   const camera = useRef<Camera>(null);
   const device = useCameraDevice('back');
 
@@ -46,62 +41,25 @@ export default function Cameratest({ navigation, route }: Props) {
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
-    async function getPermission() {
+    (async () => {
       await Camera.requestCameraPermission();
-    }
-    getPermission();
+    })();
   }, []);
 
-  const featureToScreen = (
-    feature: 'Scantext' | 'ColorDetector' | 'QRScanner'
-  ) => feature;
-
   const capturePhoto = async () => {
-    if (camera.current !== null) {
-      const photo = await camera.current.takePhoto({});
+    if (!camera.current) return;
+
+    try {
+      const photo = await camera.current.takePhoto({ flash: 'off' });
       const originalPath = `file://${photo.path}`;
+      setImageSource(originalPath);
 
-      try {
-        const rotatedPath = originalPath;
-
-        RNImage.getSize(
-          rotatedPath,
-          async (rotatedWidth, rotatedHeight) => {
-
-            const cropRegion = {
-              x: rotatedWidth * 0.3,
-              y: rotatedHeight * 0.3,
-              width: rotatedWidth * 0.4,
-              height: rotatedHeight * 0.4,
-            };
-
-            const croppedPath = await PhotoManipulator.crop(rotatedPath, cropRegion);
-
-            RNImage.getSize(
-              croppedPath,
-              (finalWidth, finalHeight) => {
-                setImageSource(croppedPath);
-                setImageSize({ width: finalWidth, height: finalHeight });
-                setShowCamera(false);
-              },
-              (error) => {
-                console.error('Final getSize failed:', error);
-                setImageSource(croppedPath);
-                setShowCamera(false);
-              }
-            );
-          },
-          (err) => {
-            console.error('GetSize after rotate failed:', err);
-            setImageSource(originalPath);
-            setShowCamera(false);
-          }
-        );
-      } catch (e) {
-        console.error('Capture process failed:', e);
-        setImageSource(originalPath);
+      Image.getSize(originalPath, (width, height) => {
+        setImageSize({ width, height });
         setShowCamera(false);
-      }
+      });
+    } catch (err) {
+      console.error('Capture failed:', err);
     }
   };
 
@@ -112,7 +70,7 @@ export default function Cameratest({ navigation, route }: Props) {
         const asset = response.assets[0];
         const uri = asset.uri || '';
         if (uri) {
-          RNImage.getSize(
+          Image.getSize(
             uri,
             (width, height) => {
               setImageSource(uri);
@@ -128,105 +86,131 @@ export default function Cameratest({ navigation, route }: Props) {
     });
   };
 
-  if (device == null) return <Text>Camera not available</Text>;
+  const navigateToFeature = () => {
+    const feature = route.params.feature;
+
+    if (feature === 'Translate') {
+      navigation.navigate('Translate', { imagePath: imageSource });
+    } else if (feature === 'Scantext') {
+      navigation.navigate('Scantext', { imagePath: imageSource });
+    } else if (feature === 'ColorDetector') {
+      navigation.navigate('ColorDetector', { imagePath: imageSource });
+    } else if (feature === 'QRScanner') {
+      navigation.navigate('QRScanner', { imagePath: imageSource });
+    }
+  };
+
+  if (!device) return <Text>Camera not available</Text>;
 
   return (
-    <View style={styles.container}>
-      {showCamera ? (
-        <>
-          <Camera
-            ref={camera}
-            style={StyleSheet.absoluteFill}
-            device={device}
-            isActive={showCamera}
-            photo={true}
-          />
-          <View style={styles.overlayBox} />
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.camButton} onPress={capturePhoto} />
-          </View>
-        </>
-      ) : (
-        <>
-          {imageSource !== '' && (
-            <Image
-              style={[
-                styles.image,
-                imageSize.width > 0 && imageSize.height > 0 && {
-                  aspectRatio: imageSize.width / imageSize.height,
-                },
-              ]}
-              source={{ uri: imageSource }}
-              resizeMode="contain"
-            />
-          )}
-
-          {!showCamera && imageSource === '' && (
-            <View style={styles.backButton}>
-              <Pressable
-                onPress={() => {
-                  setShowCamera(true);
-                  Tts.speak('Take a photo');
-                }}
-                style={({ pressed }) => [
-                  styles.takeaPhotoBtn,
-                  pressed && styles.takeaPhotoBtnPressed,
-                ]}
-              >
-                <Text style={styles.backText}>Take a Photo</Text>
-              </Pressable>
-              <Pressable
-                onPress={uploadFromLibrary}
-                style={({ pressed }) => [
-                  styles.takeaPhotoBtn,
-                  pressed && styles.takeaPhotoBtnPressed,
-                ]}
-              >
-                <Text style={styles.backText}>Upload a Photo</Text>
-              </Pressable>
+    <SafeAreaView style={styles.safeArea}> 
+      <View style={styles.container}>
+        {showCamera ? (
+          <>
+            <View style={styles.cameraContainer}>
+              <Camera
+                ref={camera}
+                style={styles.camera}
+                device={device}
+                isActive={showCamera}
+                photo={true}
+              />
             </View>
-          )}
-
-          {imageSource !== '' && (
             <View style={styles.buttonContainer}>
-              <View style={styles.buttons}>
-                <TouchableOpacity
-                  style={styles.retakeBtn}
-                  onPress={() => {
-                    setImageSource('');
-                    setImageSize({ width: 0, height: 0 });
-                    Tts.speak('Retake');
-                  }}
-                >
-                  <Text style={styles.retakeText}>Retake</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.useBtn}
-                  onPress={() => {
-                    navigation.navigate(
-                      featureToScreen(route.params.feature),
-                      { imagePath: imageSource }
-                    );
-                    Tts.speak('Use photo');
-                  }}
-                >
-                  <Text style={styles.useText}>Use Photo</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity style={styles.camButton} onPress={capturePhoto} />
             </View>
-          )}
-        </>
-      )}
-    </View>
+          </>
+        ) : (
+          <>
+            {imageSource !== '' && (
+              <Image
+                style={[
+                  styles.image,
+                  imageSize.width > 0 &&
+                    imageSize.height > 0 && {
+                      aspectRatio: imageSize.width / imageSize.height,
+                    },
+                ]}
+                source={{ uri: imageSource }}
+                resizeMode="contain"
+              />
+            )}
+            {!showCamera && imageSource === '' && (
+              <View style={styles.backButton}>
+                <Pressable
+                  onPress={() => {
+                    setShowCamera(true);
+                    Tts.speak('Take a photo');
+                  }}
+                  style={({ pressed }) => [
+                    styles.takeaPhotoBtn,
+                    pressed && styles.takeaPhotoBtnPressed,
+                  ]}
+                >
+                  <Text style={styles.backText}>Take a Photo</Text>
+                </Pressable>
+                <Pressable
+                  onPress={uploadFromLibrary}
+                  style={({ pressed }) => [
+                    styles.takeaPhotoBtn,
+                    pressed && styles.takeaPhotoBtnPressed,
+                  ]}
+                >
+                  <Text style={styles.backText}>Upload a Photo</Text>
+                </Pressable>
+              </View>
+            )}
+            {imageSource !== '' && (
+              <View style={styles.buttonContainer}>
+                <View style={styles.buttons}>
+                  <TouchableOpacity
+                    style={styles.retakeBtn}
+                    onPress={() => {
+                      setImageSource('');
+                      setImageSize({ width: 0, height: 0 });
+                      Tts.speak('Retake');
+                    }}
+                  >
+                    <Text style={styles.retakeText}>Retake</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.useBtn}
+                    onPress={() => {
+                      navigateToFeature();
+                      Tts.speak('Use photo');
+                    }}
+                  >
+                    <Text style={styles.useText}>Use Photo</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </>
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FFF9E5',
+  },
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: '#FFF9E5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraContainer: {
+    width: '100%',
+    aspectRatio: 3 / 4,
+    backgroundColor: 'black',
+    overflow: 'hidden',
+  },
+  camera: {
+    flex: 1,
   },
   backButton: {
     flex: 1,
@@ -307,16 +291,5 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '500',
     fontSize: 16,
-  },
-  overlayBox: {
-    position: 'absolute',
-    top: '30%',
-    left: '10%',
-    width: '80%',
-    height: '40%',
-    borderWidth: 2,
-    borderColor: 'white',
-    borderStyle: 'dashed',
-    zIndex: 99,
   },
 });

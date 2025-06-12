@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,18 +14,28 @@ import { Picker } from '@react-native-picker/picker';
 import TranslateText, { TranslateLanguage } from '@react-native-ml-kit/translate-text';
 import Tts from 'react-native-tts';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
+import Icon from 'react-native-vector-icons/FontAwesome5';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../App';
+import TextRecognition, { TextRecognitionScript } from '@react-native-ml-kit/text-recognition';
 
+type TranslateScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Translate'>;
+type TranslateScreenRouteProp = RouteProp<RootStackParamList, 'Translate'>;
 type LangCode = 'EN' | 'TH' | 'JA';
+
 const languageOptions: Record<LangCode, TranslateLanguage> = {
   EN: TranslateLanguage.ENGLISH,
   TH: TranslateLanguage.THAI,
   JA: TranslateLanguage.JAPANESE,
 };
+
 const ttsLanguageMap: Record<LangCode, string> = {
   EN: 'en-US',
   TH: 'th-TH',
   JA: 'ja-JP',
 };
+
 const webSpeechLang: Record<LangCode, string> = {
   EN: 'en-US',
   TH: 'th-TH',
@@ -38,7 +48,51 @@ const Translate = () => {
   const [targetLang, setTargetLang] = useState<LangCode>('JA');
   const [translatedText, setTranslatedText] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const webviewRef = useRef(null);
+  const webviewRef = useRef<WebView>(null);
+
+  const navigation = useNavigation<TranslateScreenNavigationProp>();
+  const route = useRoute<TranslateScreenRouteProp>();
+
+  useEffect(() => {
+    const params = route.params || {};
+    if (params.imagePath) {
+      recognizeTextFromImage(params.imagePath);
+    }
+  }, [route.params]);
+
+  useEffect(() => {
+    return () => {
+      Tts.stop(); 
+    };
+  }, []);
+
+  const recognizeTextFromImage = async (imagePath: string) => {
+    try {
+      const result = await TextRecognition.recognize(
+        `file://${imagePath}`,
+        TextRecognitionScript.JAPANESE
+      );
+      const extractedText = result.text || result.blocks.map(b => b.text).join('\n');
+      setText(extractedText);
+
+      const isJapanese = /[\u3040-\u30FF\u4E00-\u9FFF]/.test(extractedText);
+      const isEnglish = /^[\x00-\x7F\s]*$/.test(extractedText);
+
+      if (isJapanese) {
+        setSourceLang('JA');
+        setTargetLang('EN');
+      } else if (isEnglish) {
+        setSourceLang('EN');
+        setTargetLang('JA');
+      } else {
+        setSourceLang('JA');
+        setTargetLang('EN');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to extract text from image');
+      console.error(error);
+    }
+  };
 
   const requestMicrophonePermission = async () => {
     if (Platform.OS === 'android') {
@@ -51,12 +105,13 @@ const Translate = () => {
         }
       );
       if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-        Alert.alert('Permission Denied', 'Cannot access micrphone');
+        Alert.alert('Permission Denied', 'Cannot access microphone');
         return false;
       }
     }
     return true;
-  }
+  };
+
   const handleTranslate = () => {
     if (sourceLang === targetLang) {
       Alert.alert('Please choose different source and target languages');
@@ -74,163 +129,150 @@ const Translate = () => {
       downloadModelIfNeeded: true,
     })
       .then((result: any) => {
-        console.log('TranslateText result:', result);
         setTranslatedText(result.translatedText || result.text || JSON.stringify(result));
       })
       .catch(error => Alert.alert('Error', error.message || 'Translation failed'))
       .finally(() => setLoading(false));
   };
+
   const handleSpeak = () => {
     if (!translatedText) {
-      Alert.alert('Nothing to speak','Please translate text fist.');
+      Alert.alert('Nothing to speak', 'Please translate text first.');
       return;
     }
     const lang = ttsLanguageMap[targetLang];
     Tts.setDefaultLanguage(lang);
     Tts.setDefaultRate(0.5);
-    const cleanText = (translatedText || '').replace(/["“”]/g, '');
+    const cleanText = translatedText.replace(/["“”]/g, '');
     Tts.speak(cleanText);
-
   };
+
   const handleSpeechResult = (event: WebViewMessageEvent) => {
     const message = event.nativeEvent.data;
     if (message.startsWith('ERROR:')) {
-      Alert.alert('Speech Error', message);
+      Alert.alert('Speech Error', message.replace('ERROR:', '').trim());
     } else {
       setText(message);
     }
   };
-  const getSpeechHTML = (langCode: string) => `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          html, body {
-            margin: 0;
-            padding: 0;
-            background-color: transparent;
-            height: 100%;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          button {
-            background-color: #22668D;
-            color: white;
-            font-size: 22px;
-            font-weight: bold;
-            height: 56px;
-            line-height: 56px;
-            border: none;
-            border-radius: 16px;
-            padding: 0 20px;
-            width: 100%;
-            box-sizing: border-box;
-          }
-        </style>
-      </head>
-      <body>
-        <button onclick="start()">Speak</button>
-        <script>
-          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-          const recognition = new SpeechRecognition();
-          recognition.lang = '${langCode}';
-          recognition.interimResults = false;
-          recognition.maxAlternatives = 1;
 
-          function start() {
-            recognition.start();
-          }
+  const startSpeechRecognition = async () => {
+    const permissionGranted = await requestMicrophonePermission();
+    if (!permissionGranted) return;
+    if (webviewRef.current) {
+      webviewRef.current.injectJavaScript(`start(); true;`);
+    }
+  };
 
-          recognition.onresult = (event) => {
-            const text = event.results[0][0].transcript;
-            window.ReactNativeWebView.postMessage(text);
-          };
+  const getSpeechHTML = (langCode: string) => `<!DOCTYPE html>
+  <html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><script>
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      window.ReactNativeWebView.postMessage("ERROR: SpeechRecognition API not supported");
+    } else {
+      const recognition = new SpeechRecognition();
+      recognition.lang = '${langCode}';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      function start() { recognition.start(); }
+      recognition.onresult = (event) => {
+        const text = event.results[0][0].transcript;
+        window.ReactNativeWebView.postMessage(text);
+      };
+      recognition.onerror = (event) => {
+        window.ReactNativeWebView.postMessage("ERROR: " + event.error);
+      };
+    }
+  </script></head><body style="margin:0;background-color:transparent;"></body></html>`;
 
-          recognition.onerror = (event) => {
-            window.ReactNativeWebView.postMessage("ERROR: " + event.error);
-          };
-        </script>
-      </body>
-    </html>
-  `;
+  const goToCamera = () => {
+    navigation.navigate('Cameratest', { feature: 'Translate' });
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps='handled'>
-      <Text style={styles.header}>Translate Text</Text>
-      <TextInput
-        placeholder="Enter text here"
-        multiline
-        textAlignVertical="top"
-        style={styles.input}
-        value={text}
-        onChangeText={setText}
-        placeholderTextColor="#999"
-      />
-      <View style={styles.pickerRow}>
-        <View style={styles.pickerContainer}>
-          <Text style={styles.label}>From</Text>
-          <Picker
-            selectedValue={sourceLang}
-            onValueChange={(value: LangCode) => setSourceLang(value)}
-            style={styles.picker}
-            mode="dropdown"
-          >
-            <Picker.Item label="English" value="EN"/>
-            <Picker.Item label="Thai" value="TH"/>
-            <Picker.Item label="Japanese" value="JA"/>
-          </Picker>
+    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <View style={styles.topsection}>
+        <Text style={styles.header}>Translate Text</Text>
+        <TextInput
+          placeholder="Enter text here"
+          multiline
+          textAlignVertical="top"
+          style={styles.input}
+          value={text}
+          onChangeText={setText}
+          placeholderTextColor="#999"
+        />
+        <View style={styles.pickerRow}>
+          <View style={styles.pickerContainer}>
+            <Text style={styles.label}>From</Text>
+            <Picker
+              selectedValue={sourceLang}
+              onValueChange={(value: LangCode) => setSourceLang(value)}
+              style={styles.picker}
+              dropdownIconColor="#22668D"
+              mode="dropdown"
+            >
+              <Picker.Item label="English" value="EN" />
+              <Picker.Item label="Thai" value="TH" />
+              <Picker.Item label="Japanese" value="JA" />
+            </Picker>
+          </View>
+          <View style={styles.pickerContainer}>
+            <Text style={styles.label}>To</Text>
+            <Picker
+              selectedValue={targetLang}
+              onValueChange={(value: LangCode) => setTargetLang(value)}
+              style={styles.picker}
+              dropdownIconColor="#22668D"
+              mode="dropdown"
+            >
+              <Picker.Item label="English" value="EN" />
+              <Picker.Item label="Thai" value="TH" />
+              <Picker.Item label="Japanese" value="JA" />
+            </Picker>
+          </View>
         </View>
-        <View style={styles.pickerContainer}>
-          <Text style={styles.label}>To</Text>
-          <Picker
-            selectedValue={targetLang}
-            onValueChange={(value: LangCode) => setTargetLang(value)}
-            style={styles.picker}
-            mode="dropdown"
-          >
-            <Picker.Item label="English" value="EN" />
-            <Picker.Item label="Thai" value="TH" />
-            <Picker.Item label="Japanese" value="JA" />
-          </Picker>
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleTranslate}
+          activeOpacity={0.8}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>
+            {loading ? 'Translating...' : 'Translate'}
+          </Text>
+        </TouchableOpacity>
+        {translatedText !== null && (
+          <View style={styles.resultContainer}>
+            <Text style={styles.resultLabel}>Translation:</Text>
+            <ScrollView style={styles.resultBox} nestedScrollEnabled>
+              <Text style={styles.resultText}>{translatedText}</Text>
+            </ScrollView>
+          </View>
+        )}
+        <View style={styles.webviewContainer}>
+          <WebView
+            ref={webviewRef}
+            originWhitelist={['*']}
+            source={{ html: getSpeechHTML(webSpeechLang[sourceLang]) }}
+            onMessage={handleSpeechResult}
+            javaScriptEnabled
+            style={{ backgroundColor: 'transparent' }}
+          />
         </View>
       </View>
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleTranslate}
-        activeOpacity={0.8}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? 'Translating...' : 'Translate'}
-        </Text>
-      </TouchableOpacity>
-      {translatedText !== null &&(
-        <View style={styles.resultContainer}>
-          <Text style={styles.resultLabel}>Translation:</Text>
-          <ScrollView style={styles.resultBox} nestedScrollEnabled>
-            <Text style={styles.resultText}>{translatedText}</Text>
-          </ScrollView>
-          <TouchableOpacity
-            style={styles.readButton}
-            onPress={handleSpeak}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.buttonText}>Read Translation</Text>
+      <View style={styles.bottomsection}>
+        <TouchableOpacity style={styles.camera} onPress={goToCamera}>
+          <Icon name="camera" size={28} color="#22668D" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.microphone} onPress={startSpeechRecognition}>
+          <Icon name="microphone" size={28} color="#FFF" />
+        </TouchableOpacity>
+        {translatedText !== null && (
+          <TouchableOpacity style={styles.volume} onPress={handleSpeak}>
+            <Icon name="volume-up" size={28} color="#22668D" />
           </TouchableOpacity>
-        </View>
-      )}
-      <View style={styles.webviewContainer}>
-        <WebView
-          ref={webviewRef}
-          originWitelist={['*']}
-          source={{ html: getSpeechHTML(webSpeechLang[sourceLang])}}
-          onMessage={handleSpeechResult}
-          onLoadStart={requestMicrophonePermission}
-          style={{ backgroundColor: 'transparent' }}
-        />
+        )}
       </View>
     </ScrollView>
   );
@@ -238,10 +280,9 @@ const Translate = () => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    backgroundColor: '#f5f8fa',
+    backgroundColor: '#FFF',
     flexGrow: 1,
+    justifyContent: 'space-between',
   },
   header: {
     fontSize: 32,
@@ -261,10 +302,7 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
   },
   webviewContainer: {
-    height: 66,
-    marginTop: 20,
-    marginBottom: 10,
-    borderRadius: 16,
+    height: 1,
     overflow: 'hidden',
   },
   pickerRow: {
@@ -296,17 +334,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
-    elevation: 4,
-  },
-  readButton: {
-    backgroundColor: '#44A6BF',
-    height: 66,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    elevation: 4,
   },
   buttonText: {
     color: '#fff',
@@ -324,7 +351,6 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: '#ddd',
-    elevation: 4,
     maxHeight: 220,
     marginBottom: 30,
   },
@@ -342,6 +368,42 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#333',
   },
+  topsection: {
+    height: '85%',
+    width: '100%',
+    backgroundColor: '#FFF9E5',
+    borderBottomLeftRadius: '10%',
+    borderBottomRightRadius: '10%',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+  },
+  bottomsection: {
+    width: '100%',
+    height: '15%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  microphone: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#22668D',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    left: '50%',
+    transform: [{ translateX: -40 }],
+  },
+  volume: {
+    position: 'absolute',
+    right: 50,
+  },
+  camera: {
+    position: 'absolute',
+    left: 50,
+  },
 });
-export default Translate;
 
+export default Translate;

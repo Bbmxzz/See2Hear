@@ -98,7 +98,12 @@ export default function Login({ navigation }: Props) {
         <View style={styles.bottomTextContainer}>
           <Text style={styles.bottomText}>Don't have an account? </Text>
           <TouchableOpacity onPress={() => {
-            navigation.navigate('Signup');
+            //
+            //
+            //
+            //
+            //
+            navigation.navigate('RoboflowScreen');
             Tts.speak('Go to signup page.')
           }}>
             <Text style={styles.link}>Signup</Text>

@@ -1,5 +1,4 @@
 package main
-
 import (
 	"encoding/json"
 	"fmt"
@@ -10,30 +9,25 @@ import (
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
-
 type User struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
-
 func signupHandler(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 			return
 		}
-
 		var user User
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
-
 		if user.Email == "" || user.Password == "" {
 			http.Error(w, "Please provide both email and password", http.StatusBadRequest)
 			return
 		}
-
 		var count int
 		err := db.Get(&count, "SELECT COUNT(*) FROM users WHERE email=$1", user.Email)
 		if err != nil {
@@ -213,6 +207,6 @@ func main() {
 	http.HandleFunc("/reset-password", resetPasswordHandler(db))
 
 	log.Println("Go backend running on http://192.168.11.193:8080")
-	// log.Println("Go backend running on http://10.150.15.26:8080")
+	// log.Println("Go backend running on http://10.150.10.104:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

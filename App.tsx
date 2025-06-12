@@ -10,19 +10,21 @@ import Homepage from './pages/Homepage';
 import ColorDetector from './pages/ColorDetector';
 import Translate from './pages/Translate';
 import QRScanner from './pages/QRScanner';
-import Resetpass from './pages/Resetpass'
+import Resetpass from './pages/Resetpass';
+import RoboflowScreen from './pages/Pricetag';
 
 export type RootStackParamList = {
   Login: undefined;
-  Cameratest: { feature: 'Scantext'| 'ColorDetector' | 'QRScanner' };
+  Cameratest: { feature: 'Scantext'| 'ColorDetector' | 'QRScanner' | 'Translate' };
   Signup: undefined;
   Scantext: { imagePath: string };
   Forgotpass: undefined;
   Homepage: undefined;
   ColorDetector: { imagePath: string };
   QRScanner: { imagePath: string };
-  Translate: undefined;
+  Translate: { imagePath: string };
   Resetpass: { email: string };
+  RoboflowScreen: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -41,6 +43,7 @@ export default function App() {
         <Stack.Screen name="QRScanner" component={QRScanner}/>
         <Stack.Screen name="Translate" component={Translate}/>
         <Stack.Screen name="Resetpass" component={Resetpass}/>
+        <Stack.Screen name="RoboflowScreen" component={RoboflowScreen}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

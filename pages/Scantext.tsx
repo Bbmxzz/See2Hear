@@ -16,39 +16,36 @@ import TextRecognition, {
 import Tts from 'react-native-tts';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../App';
-
 type ScantextRouteProp = RouteProp<RootStackParamList, 'Scantext'>;
-
 type Props = {
   route: ScantextRouteProp;
 };
-
 export default function Scantext({ route }: Props) {
   const { imagePath } = route.params;
   const [recognizedText, setRecognizedText] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [imageDisplaySize, setImageDisplaySize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const [imageSize, setImageSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
   const [contentHeight, setContentHeight] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isStartPressed, setIsStartPressed] = useState(false);
   const [isStopPressed, setIsStopPressed] = useState(false);
-
+  const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
 
   useEffect(() => {
     Image.getSize(
       `file://${imagePath}`,
       (width, height) => {
-        const imageRatio = width / height;
-        let displayWidth = Dimensions.get('window').width;
-        let displayHeight = displayWidth / imageRatio;
+        const ratio = width / height;
+        let displayWidth = screenWidth * 0.95;
+        let displayHeight = displayWidth / ratio;
 
-        if (displayHeight > screenHeight * 0.7) {
-          displayHeight = screenHeight * 0.7;
-          displayWidth = displayHeight * imageRatio;
+        if (displayHeight > screenHeight * 0.5) {
+          displayHeight = screenHeight * 0.5;
+          displayWidth = displayHeight * ratio;
         }
 
-        setImageDisplaySize({ width: displayWidth, height: displayHeight });
+        setImageSize({ width: displayWidth, height: displayHeight });
       },
       (error) => {
         console.error('Failed to get image size:', error);
@@ -107,14 +104,17 @@ export default function Scantext({ route }: Props) {
 
   const Content = (
     <View onLayout={onContentLayout} style={styles.inner}>
+      <Text style={styles.header}>Scan Text</Text>
       <Image
         source={{ uri: `file://${imagePath}` }}
         style={{
-          width: imageDisplaySize.width - 20,
-          height: imageDisplaySize.height - 20,
-          borderRadius: 10,
-          marginTop: "10%",
+          width: imageSize.width,
+          height: imageSize.height,
+          marginTop: 20,
+          borderRadius: 12,
+          backgroundColor: '#e1e9f5',
         }}
+        resizeMode="contain"
       />
 
       {loading ? (
@@ -130,9 +130,7 @@ export default function Scantext({ route }: Props) {
   return (
     <View style={{ flex: 1 }}>
       {isScrollable ? (
-        <ScrollView
-          contentContainerStyle={[styles.scrollContainer, { paddingBottom: 120 }]}
-        >
+        <ScrollView contentContainerStyle={[styles.scrollContainer, { paddingBottom: 20 }]}>
           {Content}
         </ScrollView>
       ) : (
@@ -159,7 +157,13 @@ export default function Scantext({ route }: Props) {
           <Text
             style={[
               styles.buttonText,
-              { color: isSpeaking ? 'rgba(255, 255, 255 ,0.7)' : isStartPressed ? 'rgba(255, 255, 255, 1)' : 'rgb(255, 255, 255)' },
+              {
+                color: isSpeaking
+                  ? 'rgba(255, 255, 255 ,0.7)'
+                  : isStartPressed
+                  ? 'rgba(255, 255, 255, 1)'
+                  : 'rgb(255, 255, 255)',
+              },
             ]}
           >
             Start
@@ -185,7 +189,13 @@ export default function Scantext({ route }: Props) {
           <Text
             style={[
               styles.buttonText,
-              { color: !isSpeaking ? 'rgba(255, 255, 255, 0.7)' : isStopPressed ? 'rgb(255, 255, 255)' : 'rgb(255, 255, 255)' },
+              {
+                color: !isSpeaking
+                  ? 'rgba(255, 255, 255, 0.7)'
+                  : isStopPressed
+                  ? 'rgb(255, 255, 255)'
+                  : 'rgb(255, 255, 255)',
+              },
             ]}
           >
             Stop
@@ -208,8 +218,15 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
   },
+  header: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#22668D',
+    textAlign: 'center',
+    paddingTop: 60,
+  },
   ocrText: {
-    marginTop: 40,
+    marginTop: 25,
     fontSize: 16,
     color: '#333',
     textAlign: 'left',

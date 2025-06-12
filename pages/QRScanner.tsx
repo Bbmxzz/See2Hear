@@ -9,7 +9,6 @@ import {
   Dimensions,
   TouchableOpacity,
   Linking,
-  AccessibilityInfo,
 } from 'react-native';
 import BarcodeScanning from '@react-native-ml-kit/barcode-scanning';
 import axios from 'axios';
@@ -43,7 +42,6 @@ export default function ScanBarcode({ route }: Props) {
         const ratio = width / height;
         let displayWidth = screenWidth * 0.95;
         let displayHeight = displayWidth / ratio;
-
         if (displayHeight > screenHeight * 0.5) {
           displayHeight = screenHeight * 0.5;
           displayWidth = displayHeight * ratio;
@@ -322,7 +320,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#444',
   },
-
   floatingSpeakButton: {
     position: 'absolute',
     bottom: 30,

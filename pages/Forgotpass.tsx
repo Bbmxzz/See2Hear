@@ -19,7 +19,6 @@ type ForgotPassScreenProp = NativeStackNavigationProp<
   RootStackParamList,
   'Forgotpass'
 >;
-
 type Props = {
   navigation: ForgotPassScreenProp;
 };
@@ -35,7 +34,6 @@ export default function Forgotpass({ navigation }: Props) {
       Tts.speak('Please enter your email');
       return;
     }
-
     try {
       const res = await axios.post('http://192.168.11.193:8080/check-email', { email });
       if (res.data.exists) {
@@ -50,7 +48,6 @@ export default function Forgotpass({ navigation }: Props) {
       Tts.speak('Error checking email');
     }
   };
-
   return (
     <LinearGradient
       colors={['#8ECDDD', '#22668D']}
@@ -66,7 +63,6 @@ export default function Forgotpass({ navigation }: Props) {
           <Text style={styles.subtitle}>
             Please enter your email address to reset your password
           </Text>
-
           <TextInput
             placeholder="Enter your email"
             placeholderTextColor="rgb(77, 118, 141)"
@@ -77,7 +73,6 @@ export default function Forgotpass({ navigation }: Props) {
             spellCheck={false}
             keyboardType="email-address"
           />
-
           <TouchableOpacity
             style={styles.resetButton}
             onPress={handleEmailCheck}
@@ -85,7 +80,6 @@ export default function Forgotpass({ navigation }: Props) {
           >
             <Text style={styles.resetButtonText}>Continue</Text>
           </TouchableOpacity>
-
           <TouchableOpacity onPress={() => {
             navigation.navigate('Login');
             Tts.speak('Back to login.');

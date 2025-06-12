@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,27 +9,21 @@ import Icon from 'react-native-vector-icons/FontAwesome5';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import Tts from 'react-native-tts';
-import { TranslateLanguage } from '@react-native-ml-kit/translate-text';
+import { WebView } from 'react-native-webview';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   'Homepage'
 >;
+
 type Props = {
   navigation: HomeScreenNavigationProp;
 };
 
-type LangCode = 'EN' | 'TH' | 'JA';
-const languageOptions: Record<LangCode, TranslateLanguage> = {
-  EN: TranslateLanguage.ENGLISH,
-  TH: TranslateLanguage.THAI,
-  JA: TranslateLanguage.JAPANESE,
-};
-
 const features = [
   {
-    label: 'Scan Text',
-    icon: 'search',
+    label: 'Text Reader',
+    icon: 'file-alt',
     color: '#4F959D',
     tts: 'Scan text',
     navigate: 'Cameratest',
@@ -60,9 +54,36 @@ const features = [
   },
 ];
 
-export default function Homepage({ navigation }: Props){
+export default function Homepage({ navigation }: Props) {
+  const [listening, setListening] = useState(false);
+
   Tts.setDefaultLanguage('en-US');
   Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact');
+
+  const findFeatureByCommand = (command: string) => {
+    const lower = command.toLowerCase();
+
+    if (lower.includes('scan') || lower.includes('text') || lower.includes('read') || lower.includes('reader')) return features[0];
+    if (lower.includes('detect') || lower.includes('color')) return features[1];
+    if (lower.includes('translate') || lower.includes('language')) return features[2];
+    if (lower.includes('qr') || lower.includes('barcode') || lower.includes('code')) return features[3];
+
+    return undefined;
+  };
+
+  const handleVoiceCommand = (transcript: string) => {
+    const feature = findFeatureByCommand(transcript);
+    if (feature) {
+      Tts.speak(feature.tts);
+      if ('params' in feature && feature.params) {
+        navigation.navigate(feature.navigate as any, feature.params);
+      } else {
+        navigation.navigate(feature.navigate as any);
+      }
+    } else {
+      Tts.speak("Sorry, I didn't catch that.");
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -73,27 +94,73 @@ export default function Homepage({ navigation }: Props){
               style={[styles.featureCard, { backgroundColor: feature.color }]}
               onPress={() => {
                 Tts.speak(feature.tts);
-                if ('params' in feature) {
+                if ('params' in feature && feature.params) {
                   navigation.navigate(feature.navigate as any, feature.params);
                 } else {
                   navigation.navigate(feature.navigate as any);
                 }
               }}
             >
-              <Icon name={feature.icon} size={28} color="#FFF" />
+              <Icon name={feature.icon} size={28} solid color="#FFF" />
               <Text style={styles.textFeature}>{feature.label}</Text>
             </TouchableOpacity>
           </View>
         ))}
       </View>
+
       <View style={styles.bottomsection}>
-        <TouchableOpacity style={styles.microphone}>
+        <TouchableOpacity
+          style={styles.microphone}
+          onPress={() => {
+            Tts.speak('Listening...');
+            setListening(true);
+          }}
+        >
           <Icon name="microphone" size={28} color="#FFF" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.volume}>
           <Icon name="volume-up" size={28} color="#22668D" />
         </TouchableOpacity>
       </View>
+
+      {listening && (
+        <WebView
+          source={{
+            html: `
+              <!DOCTYPE html>
+              <html>
+              <body>
+                <script>
+                  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                  recognition.lang = 'en-US';
+                  recognition.continuous = false;
+                  recognition.interimResults = false;
+                  recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    window.ReactNativeWebView.postMessage(transcript);
+                  };
+                  recognition.onerror = function(event) {
+                    window.ReactNativeWebView.postMessage("ERROR:" + event.error);
+                  };
+                  recognition.start();
+                </script>
+              </body>
+              </html>
+            `,
+          }}
+          onMessage={event => {
+            const msg = event.nativeEvent.data;
+            if (msg.startsWith('ERROR:')) {
+              Tts.speak('Speech recognition error.');
+            } else {
+              Tts.speak(`You said: ${msg}`);
+              handleVoiceCommand(msg);
+            }
+            setListening(false);
+          }}
+          style={{ width: 0, height: 0 }}
+        />
+      )}
     </View>
   );
 }
