@@ -5944,6 +5944,11 @@ react-native-gesture-handler@^2.25.0:
     hoist-non-react-statics "^3.3.0"
     invariant "^2.2.4"
 
+react-native-image-crop-picker@^0.50.1:
+  version "0.50.1"
+  resolved "https://registry.npmjs.org/react-native-image-crop-picker/-/react-native-image-crop-picker-0.50.1.tgz"
+  integrity sha512-2xtyKLU08AFqjRb1hUsSanO2OK9aCtfjggKzVhq/GDSfOI+WRGhoElcMuKeQEi3ey6mivz7UNFOOvNCqGjzKBA==
+
 react-native-image-picker@^8.2.1:
   version "8.2.1"
   resolved "https://registry.npmjs.org/react-native-image-picker/-/react-native-image-picker-8.2.1.tgz"

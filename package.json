@@ -29,6 +29,7 @@
     "react-native-dropdown-picker": "^5.4.6",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "^2.25.0",
+    "react-native-image-crop-picker": "^0.50.1",
     "react-native-image-picker": "^8.2.1",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-orientation-locker": "^1.7.0",
