@@ -44,7 +44,7 @@ export default function Signup({ navigation }: Props) {
       return;
     }
     try {
-      const res = await axios.post('http://192.168.11.193:8080/signup', {
+      const res = await axios.post('http://192.168.11.200:8080/signup', {
         email,
         password,
       });

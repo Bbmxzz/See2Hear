@@ -11,11 +11,11 @@ import ColorDetector from './pages/ColorDetector';
 import Translate from './pages/Translate';
 import QRScanner from './pages/QRScanner';
 import Resetpass from './pages/Resetpass';
-import RoboflowScreen from './pages/Pricetag';
+import RoboflowScreen from './pages/Roboflowscreen';
 
 export type RootStackParamList = {
   Login: undefined;
-  Cameratest: { feature: 'Scantext'| 'ColorDetector' | 'QRScanner' | 'Translate' };
+  Cameratest: { feature: 'Scantext'| 'ColorDetector' | 'QRScanner' | 'Translate'| 'RoboflowScreen' };
   Signup: undefined;
   Scantext: { imagePath: string };
   Forgotpass: undefined;
@@ -24,7 +24,7 @@ export type RootStackParamList = {
   QRScanner: { imagePath: string };
   Translate: { imagePath: string };
   Resetpass: { email: string };
-  RoboflowScreen: undefined;
+  RoboflowScreen: { imagePath: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

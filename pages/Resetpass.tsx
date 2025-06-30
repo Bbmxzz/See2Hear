@@ -38,7 +38,7 @@ export default function Resetpass({ navigation, route }: Props) {
             return;
         }
         try {
-            const response = await fetch('http://192.168.11.193:8080/reset-password',{
+            const response = await fetch('http://192.168.11.200:8080/reset-password',{
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({email, new_password: password}),

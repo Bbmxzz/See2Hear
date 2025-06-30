@@ -35,7 +35,7 @@ export default function Forgotpass({ navigation }: Props) {
       return;
     }
     try {
-      const res = await axios.post('http://192.168.11.193:8080/check-email', { email });
+      const res = await axios.post('http://192.168.11.200:8080/check-email', { email });
       if (res.data.exists) {
         Tts.speak('Email found. Please reset your password.');
         navigation.navigate('Resetpass', { email });

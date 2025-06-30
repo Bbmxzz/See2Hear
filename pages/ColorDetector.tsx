@@ -23,6 +23,7 @@ import Tts from 'react-native-tts';
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
 type Props = {
   route: {
     params: {
@@ -33,21 +34,25 @@ type Props = {
 
 export default function ColorDetector({ route }: Props) {
   Tts.setDefaultLanguage('en-US');
-  Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact')
-  const imagePath = route.params.imagePath;
+  Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact');
+  const { imagePath } = route.params;
   const uri = imagePath;
+
   const [averageColor, setAverageColor] = useState<string>('');
   const [palette, setPalette] = useState<PaletteResult | null>(null);
   const [avgSectors, setAvgSectors] = useState<string[]>([]);
   const [centerColor, setCenterColor] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+
+  const segmentOptions = Platform.OS === 'android' ? { pixelSpacingAndroid: 2 } : undefined;
+
   useEffect(() => {
     getAverageColor(uri)
       .then((color) => {
         setAverageColor(color);
         Tts.speak(`Average color is ${getSimpleColorName(color)}`);
-      })
-      .catch(console.error);
+      });
+
     getPalette(uri)
       .then((result) => {
         setPalette(result);
@@ -60,6 +65,7 @@ export default function ColorDetector({ route }: Props) {
         Tts.speak(`Palette colors: ${spoken}`);
       })
       .catch(console.error);
+
     getSegmentsAverageColor(
       uri,
       [
@@ -73,13 +79,11 @@ export default function ColorDetector({ route }: Props) {
         { fromX: 34, toX: 66, fromY: 67, toY: 100 },
         { fromX: 67, toX: 100, fromY: 67, toY: 100 },
       ],
-      { pixelSpacingAndroid: 2 }
+      segmentOptions
     )
-      .then(setAvgSectors)
-      .catch(console.error);
-    getSegmentsAverageColor(uri, [{ fromX: 40, toX: 60, fromY: 40, toY: 60 }], {
-      pixelSpacingAndroid: 2,
-    })
+      .then(setAvgSectors);
+
+    getSegmentsAverageColor(uri, [{ fromX: 40, toX: 60, fromY: 40, toY: 60 }], segmentOptions)
       .then((colors) => {
         if (colors.length > 0) {
           setCenterColor(colors[0]);
@@ -88,6 +92,7 @@ export default function ColorDetector({ route }: Props) {
       })
       .catch(console.error);
   }, [uri]);
+
   return (
     <ScrollView
       style={styles.container}
@@ -242,7 +247,6 @@ function getSimpleColorName(hex: string): string {
   if (h >= 305 && h < 320) return 'Hot Pink';
   if (h >= 320 && h < 330) return 'Pink';
   if (h >= 330 && h <= 360) return l < 0.4 ? 'Dark Red' : 'Red';
-
   return 'Unknown';
 }
 
@@ -251,7 +255,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: '#FFF9E5',
-    paddingTop: 60,
+    paddingTop: 55,
   },
   header: {
     fontSize: 32,

@@ -31,7 +31,7 @@ export default function Login({ navigation }: Props) {
   const [hidePassword, setHidePassword] = useState(true);
   const handleLogin = async () => {
     try{
-      const res = await axios.post('http://192.168.11.193:8080/login',{
+      const res = await axios.post('http://192.168.11.200:8080/login',{
         email,
         password,
       });
@@ -98,12 +98,7 @@ export default function Login({ navigation }: Props) {
         <View style={styles.bottomTextContainer}>
           <Text style={styles.bottomText}>Don't have an account? </Text>
           <TouchableOpacity onPress={() => {
-            //
-            //
-            //
-            //
-            //
-            navigation.navigate('RoboflowScreen');
+            navigation.navigate('Signup');
             Tts.speak('Go to signup page.')
           }}>
             <Text style={styles.link}>Signup</Text>

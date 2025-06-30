@@ -5,8 +5,6 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  Pressable,
-  Dimensions,
   SafeAreaView,
 } from 'react-native';
 import { Camera, useCameraDevice } from 'react-native-vision-camera';
@@ -14,6 +12,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import Tts from 'react-native-tts';
+import DoubleClick from 'double-click-react-native';
 
 Tts.setDefaultLanguage('en-US');
 Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact');
@@ -27,7 +26,7 @@ type Props = {
   navigation: HomeScreenNavigationProp;
   route: {
     params: {
-      feature: 'Scantext' | 'ColorDetector' | 'QRScanner' | 'Translate';
+      feature: 'Scantext' | 'ColorDetector' | 'QRScanner' | 'Translate' | 'RoboflowScreen';
     };
   };
 };
@@ -35,7 +34,6 @@ type Props = {
 export default function Cameratest({ navigation, route }: Props) {
   const camera = useRef<Camera>(null);
   const device = useCameraDevice('back');
-
   const [showCamera, setShowCamera] = useState(false);
   const [imageSource, setImageSource] = useState('');
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
@@ -88,16 +86,18 @@ export default function Cameratest({ navigation, route }: Props) {
 
   const navigateToFeature = () => {
     const feature = route.params.feature;
-
     if (feature === 'Translate') {
       navigation.navigate('Translate', { imagePath: imageSource });
     } else if (feature === 'Scantext') {
       navigation.navigate('Scantext', { imagePath: imageSource });
     } else if (feature === 'ColorDetector') {
       navigation.navigate('ColorDetector', { imagePath: imageSource });
-    } else if (feature === 'QRScanner') {
-      navigation.navigate('QRScanner', { imagePath: imageSource });
+    } else if (feature === 'RoboflowScreen') {
+      navigation.navigate('RoboflowScreen', { imagePath: imageSource });
     }
+    // { else if (feature === 'QRScanner') {
+    //   navigation.navigate('QRScanner', { imagePath: imageSource });
+    // }
   };
 
   if (!device) return <Text>Camera not available</Text>;
@@ -137,27 +137,30 @@ export default function Cameratest({ navigation, route }: Props) {
             )}
             {!showCamera && imageSource === '' && (
               <View style={styles.backButton}>
-                <Pressable
-                  onPress={() => {
-                    setShowCamera(true);
+                <DoubleClick 
+                  singleTap={() => {
                     Tts.speak('Take a photo');
                   }}
-                  style={({ pressed }) => [
-                    styles.takeaPhotoBtn,
-                    pressed && styles.takeaPhotoBtnPressed,
-                  ]}
+                  doubleTap={() => {
+                      setShowCamera(true);
+                  }}
+                  delay={300}
+                  style={styles.takeaPhotoBtn}
                 >
                   <Text style={styles.backText}>Take a Photo</Text>
-                </Pressable>
-                <Pressable
-                  onPress={uploadFromLibrary}
-                  style={({ pressed }) => [
-                    styles.takeaPhotoBtn,
-                    pressed && styles.takeaPhotoBtnPressed,
-                  ]}
+                </DoubleClick>
+                <DoubleClick 
+                  singleTap={() => {
+                    Tts.speak('Upload a photo');
+                  }}
+                  doubleTap={
+                    uploadFromLibrary
+                  }
+                  delay={300}
+                  style={styles.takeaPhotoBtn}
                 >
                   <Text style={styles.backText}>Upload a Photo</Text>
-                </Pressable>
+              </DoubleClick>
               </View>
             )}
             {imageSource !== '' && (

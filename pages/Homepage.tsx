@@ -10,6 +10,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 import Tts from 'react-native-tts';
 import { WebView } from 'react-native-webview';
+import DoubleClick from 'double-click-react-native';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -25,32 +26,40 @@ const features = [
     label: 'Text Reader',
     icon: 'file-alt',
     color: '#4F959D',
-    tts: 'Scan text',
+    tts: 'Text reader',
     navigate: 'Cameratest',
     params: { feature: 'Scantext' },
   },
   {
-    label: 'Detect Color',
+    label: 'Color Detector',
     icon: 'palette',
     color: '#FFC45B',
-    tts: 'Detect color',
+    tts: 'Color Detector',
     navigate: 'Cameratest',
     params: { feature: 'ColorDetector' },
   },
   {
-    label: 'Translate',
+    label: 'Translator',
     icon: 'globe',
     color: '#6ED5CC',
-    tts: 'Translate',
+    tts: 'Translator',
     navigate: 'Translate',
   },
+  // {
+  //   label: 'Scan QR/Barcode',
+  //   icon: 'qrcode',
+  //   color: '#8CCBDC',
+  //   tts: 'Scan QR code or barcode',
+  //   navigate: 'Cameratest',
+  //   params: { feature: 'QRScanner' },
+  // },
   {
-    label: 'Scan QR/Barcode',
-    icon: 'qrcode',
+    label: 'Price Tag Scanner',
+    icon: 'tag',
     color: '#8CCBDC',
-    tts: 'Scan QR code or barcode',
+    tts: 'Price Tag Scanner',
     navigate: 'Cameratest',
-    params: { feature: 'QRScanner' },
+    params: { feature: 'RoboflowScreen' }
   },
 ];
 
@@ -64,9 +73,10 @@ export default function Homepage({ navigation }: Props) {
     const lower = command.toLowerCase();
 
     if (lower.includes('scan') || lower.includes('text') || lower.includes('read') || lower.includes('reader')) return features[0];
-    if (lower.includes('detect') || lower.includes('color')) return features[1];
-    if (lower.includes('translate') || lower.includes('language')) return features[2];
-    if (lower.includes('qr') || lower.includes('barcode') || lower.includes('code')) return features[3];
+    // if (lower.includes('detect') || lower.includes('color')) return features[1];
+    if (lower.includes('color')) return features[1];
+    if (lower.includes('translate') || lower.includes('language') || lower.includes('translator')) return features[2];
+    if (lower.includes('price') || lower.includes('tag') || lower.includes('tags')) return features[3];
 
     return undefined;
   };
@@ -90,20 +100,23 @@ export default function Homepage({ navigation }: Props) {
       <View style={styles.topsection}>
         {features.map((feature, index) => (
           <View key={index} style={styles.buttons}>
-            <TouchableOpacity
-              style={[styles.featureCard, { backgroundColor: feature.color }]}
-              onPress={() => {
-                Tts.speak(feature.tts);
-                if ('params' in feature && feature.params) {
-                  navigation.navigate(feature.navigate as any, feature.params);
-                } else {
-                  navigation.navigate(feature.navigate as any);
-                }
+            <DoubleClick 
+              singleTap={() => {
+                  Tts.speak(feature.tts);
               }}
+              doubleTap={() => {
+                  if ('params' in feature && feature.params){
+                    navigation.navigate(feature.navigate as any, feature.params);
+                  } else {
+                    navigation.navigate(feature.navigate as any);
+                  }
+              }}  
+              delay={300}
+              style={[styles.featureCard, {  backgroundColor: feature.color}]}
             >
-              <Icon name={feature.icon} size={28} solid color="#FFF" />
+              <Icon name={feature.icon} size={28} solid color='#FFF'/>
               <Text style={styles.textFeature}>{feature.label}</Text>
-            </TouchableOpacity>
+            </DoubleClick>
           </View>
         ))}
       </View>
@@ -193,9 +206,9 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   buttons: {
-    width: '45%',
+    width: '46%',
     height: '47.5%',
-    margin: '2.5%',
+    margin: '2%',
   },
   featureCard: {
     width: '100%',
@@ -207,14 +220,14 @@ const styles = StyleSheet.create({
   textFeature: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 20,
+    fontSize: 19,
     marginTop: 10,
     textAlign: 'center',
   },
   microphone: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: 40, 
     backgroundColor: '#22668D',
     justifyContent: 'center',
     alignItems: 'center',

@@ -7,28 +7,27 @@ import {
   ScrollView,
   ActivityIndicator,
   Dimensions,
-  LayoutChangeEvent,
   Pressable,
 } from 'react-native';
-import TextRecognition, {
-  TextRecognitionScript,
-} from '@react-native-ml-kit/text-recognition';
+import TextRecognition, { TextRecognitionScript } from '@react-native-ml-kit/text-recognition';
 import Tts from 'react-native-tts';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../App';
+import Icon from 'react-native-vector-icons/FontAwesome5';
+
 type ScantextRouteProp = RouteProp<RootStackParamList, 'Scantext'>;
 type Props = {
   route: ScantextRouteProp;
 };
+
 export default function Scantext({ route }: Props) {
   const { imagePath } = route.params;
   const [recognizedText, setRecognizedText] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [imageSize, setImageSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
-  const [contentHeight, setContentHeight] = useState(0);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isStartPressed, setIsStartPressed] = useState(false);
-  const [isStopPressed, setIsStopPressed] = useState(false);
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  const [isSpeakingContent, setIsSpeakingContent] = useState(false);
+  const [isSpeakingLabel, setIsSpeakingLabel] = useState(false);
+
   const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
 
@@ -72,9 +71,18 @@ export default function Scantext({ route }: Props) {
 
     detectText();
 
-    Tts.addEventListener('tts-start', () => setIsSpeaking(true));
-    Tts.addEventListener('tts-finish', () => setIsSpeaking(false));
-    Tts.addEventListener('tts-cancel', () => setIsSpeaking(false));
+    const handleStart = () => {
+      if (isSpeakingContent) setIsSpeakingContent(true);
+      if (isSpeakingLabel) setIsSpeakingLabel(true);
+    };
+    const handleFinish = () => {
+      setIsSpeakingContent(false);
+      setIsSpeakingLabel(false);
+    };
+
+    Tts.addEventListener('tts-start', handleStart);
+    Tts.addEventListener('tts-finish', handleFinish);
+    Tts.addEventListener('tts-cancel', handleFinish);
 
     return () => {
       Tts.stop();
@@ -84,122 +92,76 @@ export default function Scantext({ route }: Props) {
     };
   }, [imagePath]);
 
-  const onContentLayout = (event: LayoutChangeEvent) => {
-    setContentHeight(event.nativeEvent.layout.height);
+  const handleSpeakContent = async () => {
+    try {
+      const language = recognizedText.some((text) => /[a-zA-Z]/.test(text)) ? 'en-US' : 'ja-JP';
+      await Tts.setDefaultLanguage(language);
+      Tts.setDefaultRate(language === 'en-US' ? 0.4 : 0.7);
+      setIsSpeakingContent(true);
+      Tts.speak(recognizedText.join(' '));
+    } catch (error) {
+      console.error('TTS content error:', error);
+    }
   };
 
-  const isScrollable = contentHeight > screenHeight;
-
-  const handleSpeak = () => {
-    const language = recognizedText.some((text) => /[a-zA-Z]/.test(text)) ? 'en-US' : 'ja-JP';
-    Tts.setDefaultLanguage(language);
-    Tts.setDefaultRate(language === 'en-US' ? 0.5 : 0.7);
-    Tts.speak(recognizedText.join(' '));
+  const handleSpeakLabel = async () => {
+    try {
+      await Tts.setDefaultLanguage('en-US');
+      setIsSpeakingLabel(true);
+      Tts.speak('Text Reader');
+    } catch (error) {
+      console.error('TTS label error:', error);
+    }
   };
 
   const handleStop = () => {
     Tts.stop();
-    setIsSpeaking(false);
+    setIsSpeakingContent(false);
+    setIsSpeakingLabel(false);
   };
 
-  const Content = (
-    <View onLayout={onContentLayout} style={styles.inner}>
-      <Text style={styles.header}>Scan Text</Text>
-      <Image
-        source={{ uri: `file://${imagePath}` }}
-        style={{
-          width: imageSize.width,
-          height: imageSize.height,
-          marginTop: 20,
-          borderRadius: 12,
-          backgroundColor: '#e1e9f5',
-        }}
-        resizeMode="contain"
-      />
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" style={{ marginTop: 20 }} />
-      ) : (
-        <Text style={styles.ocrText}>{recognizedText.join('\n')}</Text>
-      )}
-
-      <View style={{ height: 100 }} />
-    </View>
-  );
-
   return (
-    <View style={{ flex: 1 }}>
-      {isScrollable ? (
-        <ScrollView contentContainerStyle={[styles.scrollContainer, { paddingBottom: 20 }]}>
-          {Content}
+    <View style={styles.screen}>
+      <View style={styles.topsection}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <Text style={styles.header}>Text Reader</Text>
+          <Image
+            source={{ uri: `file://${imagePath}` }}
+            style={[styles.image, { width: imageSize.width, height: imageSize.height }]}
+            resizeMode="contain"
+          />
+          {loading ? (
+            <ActivityIndicator size="large" color="#0000ff" style={{ marginTop: 20 }} />
+          ) : (
+            <Text style={styles.ocrText}>{recognizedText.join('\n')}</Text>
+          )}
+          <View style={{ height: 100 }} />
         </ScrollView>
-      ) : (
-        <View style={styles.scrollContainer}>{Content}</View>
-      )}
+      </View>
 
-      <View style={styles.fixedButtonContainer}>
+      <View style={styles.bottomBar}>
         <Pressable
-          onPressIn={() => setIsStartPressed(true)}
-          onPressOut={() => setIsStartPressed(false)}
-          onPress={handleSpeak}
-          disabled={isSpeaking}
-          style={[
-            styles.button,
-            {
-              backgroundColor: isSpeaking
-                ? 'rgb(121, 160, 180)'
-                : isStartPressed
-                ? 'rgba(34, 102, 141, 1)'
-                : 'rgba(34, 102, 141, 1)',
-            },
-          ]}
+          onPress={isSpeakingContent ? handleStop : handleSpeakContent}
+          style={styles.leftButton}
+          hitSlop={20}
         >
-          <Text
-            style={[
-              styles.buttonText,
-              {
-                color: isSpeaking
-                  ? 'rgba(255, 255, 255 ,0.7)'
-                  : isStartPressed
-                  ? 'rgba(255, 255, 255, 1)'
-                  : 'rgb(255, 255, 255)',
-              },
-            ]}
-          >
-            Start
-          </Text>
+          <Icon name={isSpeakingContent ? 'stop' : 'play'} size={28} color="#22668D" />
         </Pressable>
 
         <Pressable
-          onPressIn={() => setIsStopPressed(true)}
-          onPressOut={() => setIsStopPressed(false)}
-          onPress={handleStop}
-          disabled={!isSpeaking}
-          style={[
-            styles.button,
-            {
-              backgroundColor: !isSpeaking
-                ? 'rgb(231, 149, 143)'
-                : isStopPressed
-                ? 'rgba(217, 83, 79, 1)'
-                : 'rgba(217, 83, 79, 1)',
-            },
-          ]}
+          onPress={() => console.log('Microphone pressed')}
+          style={styles.microphone}
+          hitSlop={20}
         >
-          <Text
-            style={[
-              styles.buttonText,
-              {
-                color: !isSpeaking
-                  ? 'rgba(255, 255, 255, 0.7)'
-                  : isStopPressed
-                  ? 'rgb(255, 255, 255)'
-                  : 'rgb(255, 255, 255)',
-              },
-            ]}
-          >
-            Stop
-          </Text>
+          <Icon name="microphone" size={28} color="white" />
+        </Pressable>
+
+        <Pressable
+          onPress={handleSpeakLabel}
+          style={styles.rightButton}
+          hitSlop={20}
+        >
+          <Icon name="volume-up" size={28} color="#22668D" />
         </Pressable>
       </View>
     </View>
@@ -207,23 +169,34 @@ export default function Scantext({ route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    minHeight: Dimensions.get('window').height,
-    alignItems: 'center',
-    backgroundColor: '#FFF9E5',
-    padding: 20,
+  screen: {
+    flex: 1,
+    backgroundColor: '#FFF',
   },
-  inner: {
+  topsection: {
+    flex: 1,
     width: '100%',
+    backgroundColor: '#FFF9E5',
+    borderBottomLeftRadius: '10%',
+    borderBottomRightRadius: '10%',
+    overflow: 'hidden',
+  },
+  scrollContainer: {
     alignItems: 'center',
+    paddingBottom: 20,
+    padding: 20,
   },
   header: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#22668D',
     textAlign: 'center',
-    paddingTop: 60,
+    paddingTop: 50,
+  },
+  image: {
+    marginTop: 20,
+    borderRadius: 12,
+    backgroundColor: '#e1e9f5',
   },
   ocrText: {
     marginTop: 25,
@@ -232,25 +205,31 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     width: '100%',
   },
-  button: {
-    flex: 1,
-    paddingVertical: 15,
-    borderRadius: 8,
-    marginHorizontal: 5,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  fixedButtonContainer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
+  bottomBar: {
+    width: '100%',
+    height: Dimensions.get('window').height * 0.15,
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  microphone: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#22668D',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    left: '50%',
+    transform: [{ translateX: -40 }],
+  },
+  leftButton: {
+    position: 'absolute',
+    left: 50,
+  },
+  rightButton: {
+    position: 'absolute',
+    right: 50,
   },
 });
