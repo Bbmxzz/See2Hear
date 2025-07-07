@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Image,
@@ -12,6 +12,8 @@ import {
 import RNPhotoManipulator from 'react-native-photo-manipulator';
 import TextRecognition, { TextRecognitionScript } from '@react-native-ml-kit/text-recognition';
 import Icon from 'react-native-vector-icons/FontAwesome5';
+import Tts from 'react-native-tts';
+import { WebView } from 'react-native-webview';
 
 type Props = {
   route: { params: { imagePath: string } };
@@ -25,12 +27,80 @@ export default function Pricetag({ route }: Props) {
   const [croppedImages, setCroppedImages] = useState<string[]>([]);
   const [recognizedInfoList, setRecognizedInfoList] = useState<any[]>([]);
   const [colorMap, setColorMap] = useState<{ [key: string]: string }>({});
+  const [listening, setListening] = useState(false);
+  const isSpeakingRef = useRef(true);
 
-  const ROBFLOW_API = 'https://detect.roboflow.com/pricetag-vnluk/2?api_key=aBPcgn7xI7UGZm1uHn82';
+  const ROBFLOW_API = 'https://detect.roboflow.com/pricetag-vnluk/3?api_key=aBPcgn7xI7UGZm1uHn82';
   const screenWidth = Dimensions.get('window').width;
   const maxHeight = 400;
 
+  const convertNumbersToJapanese = (text: string): string => {
+    const digitMap: { [key: string]: string } = {
+      '0': 'ぜろ', '1': 'いち', '2': 'に', '3': 'さん', '4': 'よん',
+      '5': 'ご', '6': 'ろく', '7': 'なな', '8': 'はち', '9': 'きゅう'
+    };
+    return text.replace(/\d+/g, (num) =>
+      num.split('').map((d) => digitMap[d] || d).join('')
+    );
+  };
+
+  const findFeatureByCommand = (command: string) => {
+    const lower = command.toLowerCase();
+    if (lower.includes('read') || lower.includes('scan') || lower.includes('price') || lower.includes('tag') || lower.includes('detect') || lower.includes('scanner') || lower.includes('detector')) {
+      handleSpeakContent();
+    } else {
+      Tts.speak("Sorry, I didn't catch that.");
+    }
+  };
+
+  // const handleSpeakLabel = async () => {
+  //   try {
+  //     await Tts.setDefaultLanguage('en-US');
+  //     Tts.speak('This is the price tag scanner screen. At the bottom, there are 3 buttons. At the right is');
+  //   } catch(error) {
+  //     console.error('TTS label error:', error);
+  //   }
+  // };
+
+  const handleSpeakContent = async () => {
+    try {
+      if (recognizedInfoList.length === 0) {
+        Tts.speak("No price tag information detected.");
+        return;
+      }
+
+      const texts = recognizedInfoList.map((info) => {
+        const parts = [];
+        if (info.name) parts.push(`Product: ${info.name}`);
+        if (info.brand) parts.push(`Brand: ${info.brand}`);
+        if (info.quantity) parts.push(`Quantity: ${info.quantity}`);
+        if (info.price) parts.push(`Price: ${info.price}`);
+        if (info.vat) parts.push(`VAT: ${info.vat}`);
+        return parts.join(', ');
+      });
+
+      const combined = texts.join('. ');
+      const segments = combined.match(/[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}0-9]+|[a-zA-Z\s.,:¥$]+/gu) || [];
+
+      for (const segment of segments) {
+        if (!isSpeakingRef.current) break;
+
+        const isJapanese = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u.test(segment);
+        const spoken = isJapanese && /\d/.test(segment) ? convertNumbersToJapanese(segment) : segment;
+
+        await Tts.setDefaultLanguage(isJapanese ? 'ja-JP' : 'en-US');
+        await Tts.setDefaultRate(isJapanese ? 0.4 : 0.5);
+        Tts.speak(spoken);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    } catch (error) {
+      console.error('TTS error:', error);
+    }
+  };
+
   useEffect(() => {
+    isSpeakingRef.current = true;
+
     if (imagePath) {
       setLoading(true);
       Image.getSize(
@@ -45,6 +115,12 @@ export default function Pricetag({ route }: Props) {
         }
       );
     }
+
+    return () => {
+      Tts.stop();
+      setListening(false);
+      isSpeakingRef.current = false;
+    };
   }, [imagePath]);
 
   const sendToRoboflow = async (uri: string) => {
@@ -99,22 +175,20 @@ export default function Pricetag({ route }: Props) {
     const allInfos: any[] = [];
 
     for (let tag of tags) {
-      const cropX = tag.x - tag.width / 2;
-      const cropY = tag.y - tag.height / 2;
       const cropRegion = {
-        x: Math.max(0, cropX),
-        y: Math.max(0, cropY),
-        width: tag.width,
-        height: tag.height,
-      };
-      const targetSize = {
+        x: Math.max(0, tag.x - tag.width / 2),
+        y: Math.max(0, tag.y - tag.height / 2),
         width: tag.width,
         height: tag.height,
       };
 
       try {
-        const cropped = await RNPhotoManipulator.crop(imagePath, cropRegion, targetSize);
+        const cropped = await RNPhotoManipulator.crop(imagePath, cropRegion, {
+          width: tag.width,
+          height: tag.height,
+        });
         croppedUris.push(cropped);
+
         const subBoxes = json.predictions
           .filter((p: any) =>
             p.class !== 'priceTag' &&
@@ -173,10 +247,7 @@ export default function Pricetag({ route }: Props) {
     return info;
   };
 
-  const scaledHeight = Math.min(
-    (imageSize.height * screenWidth) / imageSize.width,
-    maxHeight
-  );
+  const scaledHeight = Math.min((imageSize.height * screenWidth) / imageSize.width, maxHeight);
 
   const renderBoxes = (
     predictions: any[],
@@ -240,7 +311,6 @@ export default function Pricetag({ route }: Props) {
             </View>
 
             {result && renderLegend(colorMap)}
-
             {loading && <ActivityIndicator size="large" color="blue" style={{ marginTop: 20 }} />}
 
             {croppedImages.map((uri, index) => {
@@ -266,20 +336,90 @@ export default function Pricetag({ route }: Props) {
       </View>
 
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.microphone}>
+        <TouchableOpacity
+          style={styles.microphone}
+          onPress={() => {
+            Tts.speak('Listening...');
+            setListening(true);
+          }}
+        >
           <Icon name="microphone" size={28} color="white" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.volume}>
+        <TouchableOpacity style={styles.volume} onPress={handleSpeakContent}>
           <Icon name="volume-up" size={28} color="#22668D" />
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.help}
+          // onPress={handleSpeakLabel}
+        >
+          <Icon name="comment-dots" size={28} color="#22668D"solid/>
+        </TouchableOpacity>
       </View>
+
+      {listening && (
+        <View style={{ position: 'absolute', width: 0, height: 0, top: 0, left: 0, pointerEvents: 'none' }}>
+          <WebView
+            source={{
+              html: `
+                <!DOCTYPE html>
+                <html>
+                <body>
+                  <script>
+                    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                    recognition.lang = 'en-US';
+                    recognition.continuous = false;
+                    recognition.interimResults = false;
+                    recognition.onresult = function(event) {
+                      const transcript = event.results[0][0].transcript;
+                      window.ReactNativeWebView.postMessage(transcript);
+                    };
+                    recognition.onerror = function(event) {
+                      window.ReactNativeWebView.postMessage("ERROR:" + event.error);
+                    };
+                    recognition.onend = function() {
+                      window.ReactNativeWebView.postMessage("END");
+                    };
+                    recognition.start();
+                  </script>
+                </body>
+                </html>
+              `,
+            }}
+            onMessage={event => {
+              const msg = event.nativeEvent.data;
+              if (msg.startsWith('ERROR:')) {
+                Tts.speak('Speech recognition error.');
+              } else if (msg === 'END') {
+                // Do nothing
+// 
+// 
+// 
+// 
+//                 
+                Tts.speak("Can't recognize speech.");
+              } else {
+                Tts.speak(`You said: ${msg}`);
+                findFeatureByCommand(msg);
+              }
+              setListening(false);
+            }}
+            style={{ width: 0, height: 0 }}
+          />
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: 'white' },
-  container: { alignItems: 'center', margin: 20 },
+  screen: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  container: {
+    alignItems: 'center',
+    margin: 20,
+  },
   topsection: {
     flex: 1,
     width: '100%',
@@ -356,7 +496,9 @@ const styles = StyleSheet.create({
     marginRight: 15,
     resizeMode: 'contain',
   },
-  info: { flex: 1 },
+  info: {
+    flex: 1,
+  },
   infoText: {
     fontSize: 14,
     marginBottom: 4,
@@ -376,5 +518,9 @@ const styles = StyleSheet.create({
   volume: {
     position: 'absolute',
     right: 50,
+  },
+  help: {
+    position: 'absolute',
+    left: 50,
   },
 });

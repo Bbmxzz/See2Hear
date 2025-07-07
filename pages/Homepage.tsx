@@ -45,14 +45,6 @@ const features = [
     tts: 'Translator',
     navigate: 'Translate',
   },
-  // {
-  //   label: 'Scan QR/Barcode',
-  //   icon: 'qrcode',
-  //   color: '#8CCBDC',
-  //   tts: 'Scan QR code or barcode',
-  //   navigate: 'Cameratest',
-  //   params: { feature: 'QRScanner' },
-  // },
   {
     label: 'Price Tag Scanner',
     icon: 'tag',
@@ -73,7 +65,6 @@ export default function Homepage({ navigation }: Props) {
     const lower = command.toLowerCase();
 
     if (lower.includes('scan') || lower.includes('text') || lower.includes('read') || lower.includes('reader')) return features[0];
-    // if (lower.includes('detect') || lower.includes('color')) return features[1];
     if (lower.includes('color')) return features[1];
     if (lower.includes('translate') || lower.includes('language') || lower.includes('translator')) return features[2];
     if (lower.includes('price') || lower.includes('tag') || lower.includes('tags')) return features[3];
@@ -107,6 +98,7 @@ export default function Homepage({ navigation }: Props) {
               doubleTap={() => {
                   if ('params' in feature && feature.params){
                     navigation.navigate(feature.navigate as any, feature.params);
+                    Tts.speak(`navigate to ${feature.tts}`);
                   } else {
                     navigation.navigate(feature.navigate as any);
                   }
@@ -131,8 +123,13 @@ export default function Homepage({ navigation }: Props) {
         >
           <Icon name="microphone" size={28} color="#FFF" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.volume}>
-          <Icon name="volume-up" size={28} color="#22668D" />
+        <TouchableOpacity 
+          style={styles.volume}
+          onPress={() => {
+            Tts.speak('The top left is Text Reader, top right is Color Detector, bottom left is Translator, and bottom right is Price Tag Scanner.');
+          }}
+        >
+          <Icon name="volume-up" size={28} color="#22668D"solid />
         </TouchableOpacity>
       </View>
 

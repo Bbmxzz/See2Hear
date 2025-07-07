@@ -26,7 +26,7 @@ type Props = {
   navigation: HomeScreenNavigationProp;
   route: {
     params: {
-      feature: 'Scantext' | 'ColorDetector' | 'QRScanner' | 'Translate' | 'RoboflowScreen';
+      feature: 'Scantext' | 'ColorDetector' | 'Translate' | 'RoboflowScreen';
     };
   };
 };
@@ -95,9 +95,6 @@ export default function Cameratest({ navigation, route }: Props) {
     } else if (feature === 'RoboflowScreen') {
       navigation.navigate('RoboflowScreen', { imagePath: imageSource });
     }
-    // { else if (feature === 'QRScanner') {
-    //   navigation.navigate('QRScanner', { imagePath: imageSource });
-    // }
   };
 
   if (!device) return <Text>Camera not available</Text>;

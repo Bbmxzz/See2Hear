@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,14 @@ import {
   ScrollView,
   ActivityIndicator,
   Dimensions,
-  Pressable,
+  TouchableOpacity,
 } from 'react-native';
 import TextRecognition, { TextRecognitionScript } from '@react-native-ml-kit/text-recognition';
 import Tts from 'react-native-tts';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../App';
 import Icon from 'react-native-vector-icons/FontAwesome5';
+import { WebView } from 'react-native-webview';
 
 type ScantextRouteProp = RouteProp<RootStackParamList, 'Scantext'>;
 type Props = {
@@ -25,11 +26,29 @@ export default function Scantext({ route }: Props) {
   const [recognizedText, setRecognizedText] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
-  const [isSpeakingContent, setIsSpeakingContent] = useState(false);
+  const [isSpeakingOCR, setIsSpeakingOCR] = useState(false);
   const [isSpeakingLabel, setIsSpeakingLabel] = useState(false);
+  const [listening, setListening] = useState(false);
 
   const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
+
+  const ttsStartListener = useRef<any>(null);
+  const ttsFinishListener = useRef<any>(null);
+  const ttsCancelListener = useRef<any>(null);
+
+  const findFeatureByCommand = (command: string) => {
+    const lower = command.toLowerCase();
+    if (lower.includes('read') || lower.includes('start') || lower.includes('play') || lower.includes('text')) {
+      handleSpeakContent();
+    } else if (lower.includes('help') || lower.includes('describe')) {
+      handleSpeakLabel();
+    } else if (lower.includes('stop')) {
+      handleStop();
+    } else {
+      Tts.speak("Sorry, I didn't catch that.");
+    }
+  };
 
   useEffect(() => {
     Image.getSize(
@@ -71,53 +90,68 @@ export default function Scantext({ route }: Props) {
 
     detectText();
 
-    const handleStart = () => {
-      if (isSpeakingContent) setIsSpeakingContent(true);
-      if (isSpeakingLabel) setIsSpeakingLabel(true);
-    };
-    const handleFinish = () => {
-      setIsSpeakingContent(false);
-      setIsSpeakingLabel(false);
-    };
-
-    Tts.addEventListener('tts-start', handleStart);
-    Tts.addEventListener('tts-finish', handleFinish);
-    Tts.addEventListener('tts-cancel', handleFinish);
-
     return () => {
       Tts.stop();
-      Tts.removeAllListeners('tts-start');
-      Tts.removeAllListeners('tts-finish');
-      Tts.removeAllListeners('tts-cancel');
+      removeTTSEventListeners();
     };
   }, [imagePath]);
 
+  const removeTTSEventListeners = () => {
+    ttsStartListener.current?.remove?.();
+    ttsFinishListener.current?.remove?.();
+    ttsCancelListener.current?.remove?.();
+
+    ttsStartListener.current = null;
+    ttsFinishListener.current = null;
+    ttsCancelListener.current = null;
+  };
+
   const handleSpeakContent = async () => {
     try {
+      if (recognizedText.length === 0) return;
+
       const language = recognizedText.some((text) => /[a-zA-Z]/.test(text)) ? 'en-US' : 'ja-JP';
       await Tts.setDefaultLanguage(language);
       Tts.setDefaultRate(language === 'en-US' ? 0.4 : 0.7);
-      setIsSpeakingContent(true);
+
+      removeTTSEventListeners();
+
+      ttsStartListener.current = Tts.addEventListener('tts-start', () => setIsSpeakingOCR(true));
+      ttsFinishListener.current = Tts.addEventListener('tts-finish', () => {
+        setIsSpeakingOCR(false);
+        removeTTSEventListeners();
+      });
+      ttsCancelListener.current = Tts.addEventListener('tts-cancel', () => {
+        setIsSpeakingOCR(false);
+        removeTTSEventListeners();
+      });
+
       Tts.speak(recognizedText.join(' '));
     } catch (error) {
       console.error('TTS content error:', error);
+      setIsSpeakingOCR(false);
     }
   };
 
   const handleSpeakLabel = async () => {
     try {
-      await Tts.setDefaultLanguage('en-US');
       setIsSpeakingLabel(true);
-      Tts.speak('Text Reader');
+      await Tts.setDefaultLanguage('en-US');
+      Tts.speak(
+        'This is the Text Reader screen. At the bottom, there are three buttons. On the left is the play button to read the text. In the center is the microphone button to give voice commands. On the right is this help button that describes the screen.'
+      );
+      setTimeout(() => setIsSpeakingLabel(false), 7000);
     } catch (error) {
       console.error('TTS label error:', error);
+      setIsSpeakingLabel(false);
     }
   };
 
   const handleStop = () => {
     Tts.stop();
-    setIsSpeakingContent(false);
+    setIsSpeakingOCR(false);
     setIsSpeakingLabel(false);
+    removeTTSEventListeners();
   };
 
   return (
@@ -140,30 +174,86 @@ export default function Scantext({ route }: Props) {
       </View>
 
       <View style={styles.bottomBar}>
-        <Pressable
-          onPress={isSpeakingContent ? handleStop : handleSpeakContent}
-          style={styles.leftButton}
-          hitSlop={20}
-        >
-          <Icon name={isSpeakingContent ? 'stop' : 'play'} size={28} color="#22668D" />
-        </Pressable>
-
-        <Pressable
-          onPress={() => console.log('Microphone pressed')}
-          style={styles.microphone}
-          hitSlop={20}
-        >
-          <Icon name="microphone" size={28} color="white" />
-        </Pressable>
-
-        <Pressable
-          onPress={handleSpeakLabel}
+        <TouchableOpacity
+          onPress={isSpeakingOCR ? handleStop : handleSpeakContent}
           style={styles.rightButton}
           hitSlop={20}
         >
-          <Icon name="volume-up" size={28} color="#22668D" />
-        </Pressable>
+          <Icon name={isSpeakingOCR ? 'stop' : 'play'} size={28} color="#22668D" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => {
+            Tts.speak('Listening...');
+            setListening(true);
+          }}
+          style={styles.microphone}
+        >
+          <Icon name="microphone" size={28} color="white" />
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={handleSpeakLabel} style={styles.leftButton}>
+          <Icon name="comment-dots" size={28} color="#22668D"solid />
+        </TouchableOpacity>
+
       </View>
+
+      {listening && (
+        <View
+          style={{
+            position: 'absolute',
+            width: 0,
+            height: 0,
+            top: 0,
+            left: 0,
+            pointerEvents: 'none',
+          }}
+        >
+          <WebView
+            source={{
+              html: `
+                <!DOCTYPE html>
+                <html>
+                <body>
+                  <script>
+                    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                    recognition.lang = 'en-US';
+                    recognition.continuous = false;
+                    recognition.interimResults = false;
+
+                    recognition.onresult = function(event) {
+                      const transcript = event.results[0][0].transcript;
+                      window.ReactNativeWebView.postMessage(transcript);
+                    };
+                    recognition.onerror = function(event) {
+                      window.ReactNativeWebView.postMessage("ERROR:" + event.error);
+                    };
+                    recognition.onend = function() {
+                      window.ReactNativeWebView.postMessage("END");
+                    };
+
+                    recognition.start();
+                  </script>
+                </body>
+                </html>
+              `,
+            }}
+            onMessage={event => {
+              const msg = event.nativeEvent.data;
+              if (msg.startsWith('ERROR:')) {
+                Tts.speak('Speech recognition error.');
+              } else if (msg === 'END') {
+                // do nothing if silent
+              } else {
+                Tts.speak(`You said: ${msg}`);
+                findFeatureByCommand(msg);
+              }
+              setListening(false);
+            }}
+            style={{ width: 0, height: 0 }}
+          />
+        </View>
+      )}
     </View>
   );
 }

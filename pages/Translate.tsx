@@ -192,7 +192,7 @@ const Translate = () => {
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.topsection}>
-        <Text style={styles.header}>Translate Text</Text>
+        <Text style={styles.header}>Translator</Text>
         <TextInput
           placeholder="Enter text here"
           multiline

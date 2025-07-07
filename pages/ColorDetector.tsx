@@ -19,6 +19,8 @@ import {
 } from '@somesoap/react-native-image-palette';
 import chroma from 'chroma-js';
 import Tts from 'react-native-tts';
+import Icon from 'react-native-vector-icons/FontAwesome5';
+import { WebView } from 'react-native-webview';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -43,8 +45,40 @@ export default function ColorDetector({ route }: Props) {
   const [avgSectors, setAvgSectors] = useState<string[]>([]);
   const [centerColor, setCenterColor] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [listening, setListening] = useState(false);
 
   const segmentOptions = Platform.OS === 'android' ? { pixelSpacingAndroid: 2 } : undefined;
+
+  const findFeatureByCommand = (command: string) => {
+    const lower = command.toLowerCase();
+    if (lower.includes('color') || lower.includes('center') || lower.includes('detect') || lower.includes('detector')) {
+      handleSpeakContent();
+    } else {
+      Tts.speak("Sorry, I didn't catch that.");
+    }
+  };
+
+  // const handleSpeakLabel = async () => {
+  //   try {
+  //     await Tts.setDefaultLanguage('en-US');
+  //     Tts.speak('Describe??');
+  //   } catch (error) {
+  //     console.error('TTS label error:', error);
+  //   }
+  // }
+
+  const handleSpeakContent = async () => {
+    try {
+      if (!centerColor){
+        Tts.speak("Can't detect.");
+        return;
+      } 
+      const colorName = getSimpleColorName(centerColor);
+      Tts.speak(`Center color is ${colorName}`);
+    } catch (error) {
+      console.error('TTs error:', error);
+    }
+  };
 
   useEffect(() => {
     getAverageColor(uri)
@@ -52,19 +86,6 @@ export default function ColorDetector({ route }: Props) {
         setAverageColor(color);
         Tts.speak(`Average color is ${getSimpleColorName(color)}`);
       });
-
-    getPalette(uri)
-      .then((result) => {
-        setPalette(result);
-        const keys = ['vibrant', 'muted'] as const;
-        const spoken = keys
-          .map((key) => result[key])
-          .filter(Boolean)
-          .map((color) => `${getSimpleColorName(color!)}`)
-          .join(', ');
-        Tts.speak(`Palette colors: ${spoken}`);
-      })
-      .catch(console.error);
 
     getSegmentsAverageColor(
       uri,
@@ -80,8 +101,7 @@ export default function ColorDetector({ route }: Props) {
         { fromX: 67, toX: 100, fromY: 67, toY: 100 },
       ],
       segmentOptions
-    )
-      .then(setAvgSectors);
+    ).then(setAvgSectors);
 
     getSegmentsAverageColor(uri, [{ fromX: 40, toX: 60, fromY: 40, toY: 60 }], segmentOptions)
       .then((colors) => {
@@ -91,64 +111,139 @@ export default function ColorDetector({ route }: Props) {
         }
       })
       .catch(console.error);
+
+    return () => {
+      Tts.stop();
+      setListening(false);
+    };
   }, [uri]);
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
-    >
-      <Text style={styles.header}>Color Detector</Text>
-      <Image source={{ uri }} style={styles.image} />
-      {centerColor && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Center Color</Text>
-          <ColorBlock
-            color={centerColor}
-            label={`Center - ${getSimpleColorName(centerColor)}`}
-            big
+    <View style={styles.screen}>
+      <View style={styles.topsection}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
+        >
+          <Text style={styles.header}>Color Detector</Text>
+          <Image source={{ uri }} style={styles.image} />
+          {centerColor && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Center Color</Text>
+              <ColorBlock
+                color={centerColor}
+                label={`Center - ${getSimpleColorName(centerColor)}`}
+                big
+              />
+            </View>
+          )}
+          <ToggleSection
+            title="Show All Colors"
+            expanded={showAll}
+            onToggle={() => {
+              LayoutAnimation.easeInEaseOut();
+              setShowAll(!showAll);
+            }}
+          >
+            {showAll && (
+              <>
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Segmented Colors</Text>
+                  <View style={styles.grid}>
+                    {avgSectors.map((color, idx) => (
+                      <ColorBlock
+                        key={idx}
+                        color={color}
+                        label={`Block ${idx + 1} - ${getSimpleColorName(color)}`}
+                      />
+                    ))}
+                  </View>
+                </View>
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Palette</Text>
+                  <View style={styles.palette}>
+                    {palette &&
+                      Object.entries(palette).map(([name, color]) => (
+                        <ColorBlock
+                          key={name}
+                          color={color}
+                          label={`${name} - ${getSimpleColorName(color)}`}
+                        />
+                      ))}
+                  </View>
+                </View>
+              </>
+            )}
+          </ToggleSection>
+        </ScrollView>
+      </View>
+      <View style={styles.bottomBar}>
+        <TouchableOpacity 
+          style={styles.microphone}
+          onPress={() => {
+            Tts.speak('Listening...');
+            setListening(true);
+          }}
+        >
+          <Icon name="microphone" size={28} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.volume} onPress={handleSpeakContent}>
+          <Icon name="volume-up" size={28} color="#22668D" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.help} 
+        // onPress={handleSpeakLabel}
+        >
+          <Icon name="comment-dots" size={28} color="#22668D"solid/>
+        </TouchableOpacity>
+      </View>
+
+      {listening && (
+        <View style={{ position: 'absolute', width: 0, height: 0, top: 0, left: 0, pointerEvents: 'none'}}>
+          <WebView
+            source={{
+              html: `
+                <!DOCTYPE html>
+                <html>
+                <body>
+                  <script>
+                    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                    recognition.lang = 'en-US';
+                    recognition.continuous = false;
+                    recognition.interimResults = false;
+                    recognition.onresult = function(event) {
+                      const transcript = event.results[0][0].transcript;
+                      window.ReactNativeWebView.postMessage(transcript);
+                    };
+                    recognition.onerror = function(event) {
+                      window.ReactNativeWebView.postMessage("ERROR:" + event.error);
+                    };
+                    recognition.onend = function() {
+                      window.ReactNativeWebView.postMessage("END");
+                    };
+                    recognition.start();
+                  </script>
+                </body>
+                </html>
+              `,
+            }}
+            onMessage={event => {
+              const msg = event.nativeEvent.data;
+              if (msg.startsWith('ERROR:')) {
+                Tts.speak('Speech recognition error.');
+              } else if (msg === 'END') {
+                // silence
+              } else {
+                Tts.speak(`You said: ${msg}`);
+                findFeatureByCommand(msg);
+              }
+              setListening(false);
+            }}
+            style={{ width: 0, height: 0 }}
           />
         </View>
       )}
-      <ToggleSection
-        title="Show All Colors"
-        expanded={showAll}
-        onToggle={() => {
-          LayoutAnimation.easeInEaseOut();
-          setShowAll(!showAll);
-        }}
-      >
-        {showAll && (
-          <>
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Segmented Colors</Text>
-              <View style={styles.grid}>
-                {avgSectors.map((color, idx) => (
-                  <ColorBlock
-                    key={idx}
-                    color={color}
-                    label={`Block ${idx + 1} - ${getSimpleColorName(color)}`}
-                  />
-                ))}
-              </View>
-            </View>
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Palette</Text>
-              <View style={styles.palette}>
-                {palette &&
-                  Object.entries(palette).map(([name, color]) => (
-                    <ColorBlock
-                      key={name}
-                      color={color}
-                      label={`${name} - ${getSimpleColorName(color)}`}
-                    />
-                  ))}
-              </View>
-            </View>
-          </>
-        )}
-      </ToggleSection>
-    </ScrollView>
+
+    </View>
   );
 }
 
@@ -251,11 +346,32 @@ function getSimpleColorName(hex: string): string {
 }
 
 const styles = StyleSheet.create({
+  screen: { 
+    flex: 1, 
+    backgroundColor: 'white' 
+  },
   container: {
     flex: 1,
     padding: 16,
     backgroundColor: '#FFF9E5',
     paddingTop: 55,
+  },
+  topsection: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: '#FFF9E5',
+    borderBottomLeftRadius: 50,
+    borderBottomRightRadius: 50,
+    overflow: 'hidden',
+    paddingBottom: 20,
+  },
+  bottomBar: {
+    height: Dimensions.get('window').height * 0.15,
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
   },
   header: {
     fontSize: 32,
@@ -269,7 +385,7 @@ const styles = StyleSheet.create({
     height: 280,
     resizeMode: 'contain',
     borderRadius: 12,
-    marginBottom: 16,
+
   },
   section: {
     marginTop: 20,
@@ -340,5 +456,24 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.4)',
     textShadowOffset: { width: 0.5, height: 0.5 },
     textShadowRadius: 2,
+  },
+  microphone: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#22668D',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    left: '50%',
+    transform: [{ translateX: -40 }],
+  },
+  volume: { 
+    position: 'absolute', 
+    right: 50 
+  },
+  help: {
+    position: 'absolute',
+    left: 50,
   },
 });
