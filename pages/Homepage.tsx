@@ -101,6 +101,7 @@ export default function Homepage({ navigation }: Props) {
                     Tts.speak(`navigate to ${feature.tts}`);
                   } else {
                     navigation.navigate(feature.navigate as any);
+                    Tts.speak(`navigate to ${feature.tts}`);
                   }
               }}  
               delay={300}
@@ -126,7 +127,7 @@ export default function Homepage({ navigation }: Props) {
         <TouchableOpacity 
           style={styles.volume}
           onPress={() => {
-            Tts.speak('The top left is Text Reader, top right is Color Detector, bottom left is Translator, and bottom right is Price Tag Scanner.');
+            Tts.speak('The top left is the Text Reader, the top right is the Color Detector, the bottom left is the Translator, and the bottom right is the Price Tag Scanner. When selecting a feature, you need to double-tap the button. The first tap announces the feature name, and the second tap confirms your selection.');
           }}
         >
           <Icon name="volume-up" size={28} color="#22668D"solid />
@@ -152,6 +153,9 @@ export default function Homepage({ navigation }: Props) {
                   recognition.onerror = function(event) {
                     window.ReactNativeWebView.postMessage("ERROR:" + event.error);
                   };
+                  recognition.onend = function() {
+                  window.ReactNativeWebView.postMessage("END");
+                  };
                   recognition.start();
                 </script>
               </body>
@@ -162,6 +166,8 @@ export default function Homepage({ navigation }: Props) {
             const msg = event.nativeEvent.data;
             if (msg.startsWith('ERROR:')) {
               Tts.speak('Speech recognition error.');
+            } else if (msg === 'END'){
+              // do nothing if silent
             } else {
               Tts.speak(`You said: ${msg}`);
               handleVoiceCommand(msg);
@@ -234,6 +240,7 @@ const styles = StyleSheet.create({
   },
   volume: {
     position: 'absolute',
-    right: 50,
+    right:0,
+    padding: 50,
   },
 });

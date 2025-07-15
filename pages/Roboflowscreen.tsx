@@ -19,6 +19,7 @@ type Props = {
   route: { params: { imagePath: string } };
 };
 
+
 export default function Pricetag({ route }: Props) {
   const { imagePath } = route.params;
   const [imageSize, setImageSize] = useState({ width: 1, height: 1 });
@@ -34,64 +35,101 @@ export default function Pricetag({ route }: Props) {
   const screenWidth = Dimensions.get('window').width;
   const maxHeight = 400;
 
-  const convertNumbersToJapanese = (text: string): string => {
-    const digitMap: { [key: string]: string } = {
-      '0': 'ぜろ', '1': 'いち', '2': 'に', '3': 'さん', '4': 'よん',
-      '5': 'ご', '6': 'ろく', '7': 'なな', '8': 'はち', '9': 'きゅう'
-    };
-    return text.replace(/\d+/g, (num) =>
-      num.split('').map((d) => digitMap[d] || d).join('')
-    );
+  const extractNumberOnly = (text: string) => {
+    const match = text.match(/\d+/);
+    return match ? match[0] : '';
+  };
+
+  const convertNumbersToJapanese = (numStr: string) => {
+    const units = ['', 'じゅう', 'ひゃく', 'せん'];
+    const digits = ['', 'いち', 'に', 'さん', 'よん', 'ご', 'ろく', 'なな', 'はち', 'きゅう'];
+    if (numStr === '0') return 'ぜろ';
+    const digitsArray = numStr.split('').reverse();
+    let result = '';
+    for (let i = digitsArray.length - 1; i >= 0; i--) {
+      const d = parseInt(digitsArray[i]);
+      if (d === 0) continue;
+      if (d === 1 && i > 0) {
+        result += units[i];
+      } else {
+        result += digits[d] + units[i];
+      }
+    }
+    return result;
   };
 
   const findFeatureByCommand = (command: string) => {
     const lower = command.toLowerCase();
-    if (lower.includes('read') || lower.includes('scan') || lower.includes('price') || lower.includes('tag') || lower.includes('detect') || lower.includes('scanner') || lower.includes('detector')) {
+    if (
+      lower.includes('read') ||
+      lower.includes('scan') ||
+      lower.includes('price') ||
+      lower.includes('tag') ||
+      lower.includes('detect') ||
+      lower.includes('scanner') ||
+      lower.includes('detector')
+    ) {
       handleSpeakContent();
     } else {
       Tts.speak("Sorry, I didn't catch that.");
     }
   };
 
-  // const handleSpeakLabel = async () => {
-  //   try {
-  //     await Tts.setDefaultLanguage('en-US');
-  //     Tts.speak('This is the price tag scanner screen. At the bottom, there are 3 buttons. At the right is');
-  //   } catch(error) {
-  //     console.error('TTS label error:', error);
-  //   }
-  // };
+  const handleSpeakLabel = async () => {
+    try {
+      await Tts.setDefaultLanguage('en-US');
+      Tts.speak(
+        'This is the price tag scanner screen. It detect and read price tag information. At the bottom, there are three buttons. At the left is this help button that describes the screen. In the center is the microphone button to give voice command. On the right is the play button to read the text.'
+      );
+    } catch (error) {
+      console.error('TTS label error:', error);
+    }
+  };
 
   const handleSpeakContent = async () => {
     try {
       if (recognizedInfoList.length === 0) {
-        Tts.speak("No price tag information detected.");
+        Tts.speak('No price tag information detected.');
         return;
       }
 
-      const texts = recognizedInfoList.map((info) => {
-        const parts = [];
-        if (info.name) parts.push(`Product: ${info.name}`);
-        if (info.brand) parts.push(`Brand: ${info.brand}`);
-        if (info.quantity) parts.push(`Quantity: ${info.quantity}`);
-        if (info.price) parts.push(`Price: ${info.price}`);
-        if (info.vat) parts.push(`VAT: ${info.vat}`);
-        return parts.join(', ');
-      });
+      for (const info of recognizedInfoList) {
+        if (!isSpeakingRef.current) return;
 
-      const combined = texts.join('. ');
-      const segments = combined.match(/[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}0-9]+|[a-zA-Z\s.,:¥$]+/gu) || [];
+        if (!info.name) continue;
 
-      for (const segment of segments) {
-        if (!isSpeakingRef.current) break;
+        const fields = [
+          { label: 'Product', value: info.name },
+          { label: 'Brand', value: info.brand },
+          // { label: 'Quantity', value: info.quantity },
+          { label: 'Price', value: info.price, numericOnly: true },
+          { label: 'VAT included', value: info.vat, numericOnly: true },
+        ];
 
-        const isJapanese = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u.test(segment);
-        const spoken = isJapanese && /\d/.test(segment) ? convertNumbersToJapanese(segment) : segment;
+        for (const field of fields) {
+          if (!field.value || !isSpeakingRef.current) return;
 
-        await Tts.setDefaultLanguage(isJapanese ? 'ja-JP' : 'en-US');
-        await Tts.setDefaultRate(isJapanese ? 0.4 : 0.5);
-        Tts.speak(spoken);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+          const containsJapanese = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u.test(field.value);
+          const numericPart = extractNumberOnly(field.value);
+          let spokenValue = field.value;
+
+          if (field.numericOnly) {
+            spokenValue = containsJapanese
+              ? convertNumbersToJapanese(numericPart)
+              : numericPart + ' yen';
+          }
+
+          await Tts.setDefaultLanguage('en-US');
+          Tts.speak(`${field.label}:`);
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          if (!isSpeakingRef.current) return;
+
+          await Tts.setDefaultLanguage(containsJapanese ? 'ja-JP' : 'en-US');
+          await Tts.setDefaultRate(containsJapanese ? 0.4 : 0.5);
+          Tts.speak(spokenValue);
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          if (!isSpeakingRef.current) return;
+        }
       }
     } catch (error) {
       console.error('TTS error:', error);
@@ -103,6 +141,7 @@ export default function Pricetag({ route }: Props) {
 
     if (imagePath) {
       setLoading(true);
+      Tts.speak('Please wait a moment.');
       Image.getSize(
         imagePath,
         async (width, height) => {
@@ -118,8 +157,9 @@ export default function Pricetag({ route }: Props) {
 
     return () => {
       Tts.stop();
-      setListening(false);
+      Tts.setDefaultLanguage('en-US');
       isSpeakingRef.current = false;
+      setListening(false);
     };
   }, [imagePath]);
 
@@ -165,9 +205,11 @@ export default function Pricetag({ route }: Props) {
 
   const cropImageWithPriceTags = async (json: any) => {
     setLoading(true);
+    Tts.speak('Finished the processing');
     const tags = json?.predictions?.filter((p: any) => p.class === 'priceTag');
     if (!tags || tags.length === 0) {
       setLoading(false);
+      Tts.speak("Can't detect price tag.");
       return;
     }
 
@@ -190,12 +232,13 @@ export default function Pricetag({ route }: Props) {
         croppedUris.push(cropped);
 
         const subBoxes = json.predictions
-          .filter((p: any) =>
-            p.class !== 'priceTag' &&
-            p.x >= cropRegion.x &&
-            p.x <= cropRegion.x + cropRegion.width &&
-            p.y >= cropRegion.y &&
-            p.y <= cropRegion.y + cropRegion.height
+          .filter(
+            (p: any) =>
+              p.class !== 'priceTag' &&
+              p.x >= cropRegion.x &&
+              p.x <= cropRegion.x + cropRegion.width &&
+              p.y >= cropRegion.y &&
+              p.y <= cropRegion.y + cropRegion.height
           )
           .map((p: any) => ({
             ...p,
@@ -209,7 +252,6 @@ export default function Pricetag({ route }: Props) {
         console.error('Crop or OCR error:', err);
       }
     }
-
     setCroppedImages(croppedUris);
     setRecognizedInfoList(allInfos);
     setLoading(false);
@@ -225,30 +267,25 @@ export default function Pricetag({ route }: Props) {
         height: p.height,
       };
       try {
-        const croppedTag = await RNPhotoManipulator.crop(
-          croppedPath,
-          boxCrop,
-          { width: boxCrop.width, height: boxCrop.height }
-        );
-        const ocr = await TextRecognition.recognize(
-          `file://${croppedTag}`,
-          TextRecognitionScript.JAPANESE
-        );
-        const text = ocr.blocks.flatMap(block => block.lines.map(line => line.text)).join(' ');
+        const croppedTag = await RNPhotoManipulator.crop(croppedPath, boxCrop, {
+          width: boxCrop.width,
+          height: boxCrop.height,
+        });
+        const ocr = await TextRecognition.recognize(`file://${croppedTag}`, TextRecognitionScript.JAPANESE);
+        const text = ocr.blocks.flatMap((block) => block.lines.map((line) => line.text)).join(' ');
         if (p.class === 'brand') info.brand = text;
         if (p.class === 'name') info.name = text;
         if (p.class === 'quantity') info.quantity = text;
-        if (p.class === 'price') info.price = text;
-        if (p.class === 'vat') info.vat = text;
+        if (p.class === 'price') info.price = extractNumberOnly(text);
+        if (p.class === 'vat') info.vat = extractNumberOnly(text);
       } catch (err) {
-        console.warn("OCR failed on box:", p.class, err);
+        console.warn('OCR failed on box:', p.class, err);
       }
     }
     return info;
   };
 
-  const scaledHeight = Math.min((imageSize.height * screenWidth) / imageSize.width, maxHeight);
-
+   const scaledHeight = Math.min((imageSize.height * screenWidth) / imageSize.width, maxHeight);
   const renderBoxes = (
     predictions: any[],
     imageWidth: number,
@@ -302,19 +339,14 @@ export default function Pricetag({ route }: Props) {
           <View style={styles.container}>
             <Text style={styles.header}>Price Tag Scanner</Text>
             <View style={[styles.imageWrapper, { width: screenWidth, height: scaledHeight }]}>
-              <Image
-                source={{ uri: imagePath }}
-                style={{ width: screenWidth, height: scaledHeight }}
-                resizeMode="contain"
-              />
+              <Image source={{ uri: imagePath }} style={{ width: screenWidth, height: scaledHeight }} resizeMode="contain" />
               {result && renderBoxes(result.predictions, result.image.width, result.image.height, colorMap)}
             </View>
-
             {result && renderLegend(colorMap)}
             {loading && <ActivityIndicator size="large" color="blue" style={{ marginTop: 20 }} />}
-
             {croppedImages.map((uri, index) => {
               const info = recognizedInfoList[index] || {};
+              if (!info.name) return null;
               return (
                 <View key={index} style={styles.card}>
                   <Text style={styles.cardTitle}>Price Tag #{index + 1}</Text>
@@ -323,9 +355,9 @@ export default function Pricetag({ route }: Props) {
                     <View style={styles.info}>
                       {info.name && <Text style={styles.infoText}>Product: {info.name}</Text>}
                       {info.brand && <Text style={styles.infoText}>Brand: {info.brand}</Text>}
-                      {info.quantity && <Text style={styles.infoText}>Quantity: {info.quantity}</Text>}
-                      {info.price && <Text style={styles.infoText}>Price: {info.price}</Text>}
-                      {info.vat && <Text style={styles.infoText}>VAT: {info.vat}</Text>}
+                      {/* {info.quantity && <Text style={styles.infoText}>Quantity: {info.quantity}</Text>} */}
+                      {info.price && <Text style={styles.infoText}>Price: {info.price} yen</Text>}
+                      {info.vat && <Text style={styles.infoText}>VAT included: {info.vat} yen</Text>}
                     </View>
                   </View>
                 </View>
@@ -348,11 +380,8 @@ export default function Pricetag({ route }: Props) {
         <TouchableOpacity style={styles.volume} onPress={handleSpeakContent}>
           <Icon name="volume-up" size={28} color="#22668D" />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.help}
-          // onPress={handleSpeakLabel}
-        >
-          <Icon name="comment-dots" size={28} color="#22668D"solid/>
+        <TouchableOpacity style={styles.help} onPress={handleSpeakLabel}>
+          <Icon name="comment-dots" size={28} color="#22668D" solid />
         </TouchableOpacity>
       </View>
 
@@ -385,17 +414,12 @@ export default function Pricetag({ route }: Props) {
                 </html>
               `,
             }}
-            onMessage={event => {
+            onMessage={(event) => {
               const msg = event.nativeEvent.data;
               if (msg.startsWith('ERROR:')) {
                 Tts.speak('Speech recognition error.');
               } else if (msg === 'END') {
                 // Do nothing
-// 
-// 
-// 
-// 
-//                 
                 Tts.speak("Can't recognize speech.");
               } else {
                 Tts.speak(`You said: ${msg}`);
@@ -517,10 +541,12 @@ const styles = StyleSheet.create({
   },
   volume: {
     position: 'absolute',
-    right: 50,
+    right: 0,
+    padding: 50,
   },
   help: {
     position: 'absolute',
-    left: 50,
+    left: 0,
+    padding: 50,
   },
 });

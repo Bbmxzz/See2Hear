@@ -9,11 +9,9 @@ import {
   TouchableOpacity,
   LayoutAnimation,
   Platform,
-  UIManager,
 } from 'react-native';
 import {
   getAverageColor,
-  getPalette,
   getSegmentsAverageColor,
   type PaletteResult,
 } from '@somesoap/react-native-image-palette';
@@ -21,10 +19,6 @@ import chroma from 'chroma-js';
 import Tts from 'react-native-tts';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { WebView } from 'react-native-webview';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 type Props = {
   route: {
@@ -39,14 +33,11 @@ export default function ColorDetector({ route }: Props) {
   Tts.setDefaultVoice('com.apple.ttsbundle.Daniel-compact');
   const { imagePath } = route.params;
   const uri = imagePath;
-
   const [averageColor, setAverageColor] = useState<string>('');
-  const [palette, setPalette] = useState<PaletteResult | null>(null);
   const [avgSectors, setAvgSectors] = useState<string[]>([]);
   const [centerColor, setCenterColor] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [listening, setListening] = useState(false);
-
   const segmentOptions = Platform.OS === 'android' ? { pixelSpacingAndroid: 2 } : undefined;
 
   const findFeatureByCommand = (command: string) => {
@@ -58,14 +49,14 @@ export default function ColorDetector({ route }: Props) {
     }
   };
 
-  // const handleSpeakLabel = async () => {
-  //   try {
-  //     await Tts.setDefaultLanguage('en-US');
-  //     Tts.speak('Describe??');
-  //   } catch (error) {
-  //     console.error('TTS label error:', error);
-  //   }
-  // }
+  const handleSpeakLabel = async () => {
+    try {
+      await Tts.setDefaultLanguage('en-US');
+      Tts.speak('This is the color detector screen. Point the camera to detect a color. At the bottom, there are 3 buttons: On the left is the help button, which describes the screen. In the center is the microphone button for voice commands. On the right is the speaker button, which repeats the current color out loud.');
+    } catch (error) {
+      console.error('TTS label error:', error);
+    }
+  }
 
   const handleSpeakContent = async () => {
     try {
@@ -114,6 +105,7 @@ export default function ColorDetector({ route }: Props) {
 
     return () => {
       Tts.stop();
+      Tts.setDefaultLanguage('en-US');
       setListening(false);
     };
   }, [uri]);
@@ -159,19 +151,6 @@ export default function ColorDetector({ route }: Props) {
                     ))}
                   </View>
                 </View>
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Palette</Text>
-                  <View style={styles.palette}>
-                    {palette &&
-                      Object.entries(palette).map(([name, color]) => (
-                        <ColorBlock
-                          key={name}
-                          color={color}
-                          label={`${name} - ${getSimpleColorName(color)}`}
-                        />
-                      ))}
-                  </View>
-                </View>
               </>
             )}
           </ToggleSection>
@@ -191,9 +170,9 @@ export default function ColorDetector({ route }: Props) {
           <Icon name="volume-up" size={28} color="#22668D" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.help} 
-        // onPress={handleSpeakLabel}
+         onPress={handleSpeakLabel}
         >
-          <Icon name="comment-dots" size={28} color="#22668D"solid/>
+          <Icon name="comment-dots" size={30} color="#22668D"solid/>
         </TouchableOpacity>
       </View>
 
@@ -470,10 +449,12 @@ const styles = StyleSheet.create({
   },
   volume: { 
     position: 'absolute', 
-    right: 50 
+    right: 0,
+    padding: 50,
   },
   help: {
     position: 'absolute',
-    left: 50,
+    left: 0,
+    padding: 50,
   },
 });

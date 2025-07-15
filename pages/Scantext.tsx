@@ -29,10 +29,8 @@ export default function Scantext({ route }: Props) {
   const [isSpeakingOCR, setIsSpeakingOCR] = useState(false);
   const [isSpeakingLabel, setIsSpeakingLabel] = useState(false);
   const [listening, setListening] = useState(false);
-
   const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
-
   const ttsStartListener = useRef<any>(null);
   const ttsFinishListener = useRef<any>(null);
   const ttsCancelListener = useRef<any>(null);
@@ -43,7 +41,7 @@ export default function Scantext({ route }: Props) {
       handleSpeakContent();
     } else if (lower.includes('help') || lower.includes('describe')) {
       handleSpeakLabel();
-    } else if (lower.includes('stop')) {
+    } else if (lower.includes('stop') || lower.includes('pause')) {
       handleStop();
     } else {
       Tts.speak("Sorry, I didn't catch that.");
@@ -57,12 +55,10 @@ export default function Scantext({ route }: Props) {
         const ratio = width / height;
         let displayWidth = screenWidth * 0.95;
         let displayHeight = displayWidth / ratio;
-
         if (displayHeight > screenHeight * 0.5) {
           displayHeight = screenHeight * 0.5;
           displayWidth = displayHeight * ratio;
         }
-
         setImageSize({ width: displayWidth, height: displayHeight });
       },
       (error) => {
@@ -79,7 +75,13 @@ export default function Scantext({ route }: Props) {
         const lines = rawResult.blocks.flatMap(block =>
           block.lines.map(line => line.text)
         );
-        setRecognizedText(lines);
+        if (lines.length === 0) {
+          setRecognizedText(['No text detected']);
+          await Tts.setDefaultLanguage('en-US');
+          Tts.speak('No text detected.');
+        } else {
+          setRecognizedText(lines);
+        }
       } catch (err) {
         console.error('OCR Error:', err);
         setRecognizedText(['Error detecting text']);
@@ -87,11 +89,11 @@ export default function Scantext({ route }: Props) {
         setLoading(false);
       }
     };
-
     detectText();
 
     return () => {
       Tts.stop();
+      Tts.setDefaultLanguage('en-US');
       removeTTSEventListeners();
     };
   }, [imagePath]);
@@ -138,7 +140,7 @@ export default function Scantext({ route }: Props) {
       setIsSpeakingLabel(true);
       await Tts.setDefaultLanguage('en-US');
       Tts.speak(
-        'This is the Text Reader screen. At the bottom, there are three buttons. On the left is the play button to read the text. In the center is the microphone button to give voice commands. On the right is this help button that describes the screen.'
+        'This is the Text Reader screen. Upload or take a photo to detect text. At the bottom, there are three buttons: On the left is the help button, which provides a description of this screen. In the center is the microphone button, used to give voice commands. On the right is the play button, which reads the recognized text aloud.'
       );
       setTimeout(() => setIsSpeakingLabel(false), 7000);
     } catch (error) {
@@ -148,6 +150,7 @@ export default function Scantext({ route }: Props) {
   };
 
   const handleStop = () => {
+    Tts.setDefaultLanguage('en-US');
     Tts.stop();
     setIsSpeakingOCR(false);
     setIsSpeakingLabel(false);
@@ -172,7 +175,6 @@ export default function Scantext({ route }: Props) {
           <View style={{ height: 100 }} />
         </ScrollView>
       </View>
-
       <View style={styles.bottomBar}>
         <TouchableOpacity
           onPress={isSpeakingOCR ? handleStop : handleSpeakContent}
@@ -193,22 +195,12 @@ export default function Scantext({ route }: Props) {
         </TouchableOpacity>
 
         <TouchableOpacity onPress={handleSpeakLabel} style={styles.leftButton}>
-          <Icon name="comment-dots" size={28} color="#22668D"solid />
+          <Icon name="comment-dots" size={30} color="#22668D" solid />
         </TouchableOpacity>
-
       </View>
 
       {listening && (
-        <View
-          style={{
-            position: 'absolute',
-            width: 0,
-            height: 0,
-            top: 0,
-            left: 0,
-            pointerEvents: 'none',
-          }}
-        >
+        <View style={{ position: 'absolute', width: 0, height: 0, top: 0, left: 0, pointerEvents: 'none' }}>
           <WebView
             source={{
               html: `
@@ -243,7 +235,6 @@ export default function Scantext({ route }: Props) {
               if (msg.startsWith('ERROR:')) {
                 Tts.speak('Speech recognition error.');
               } else if (msg === 'END') {
-                // do nothing if silent
               } else {
                 Tts.speak(`You said: ${msg}`);
                 findFeatureByCommand(msg);
@@ -316,10 +307,12 @@ const styles = StyleSheet.create({
   },
   leftButton: {
     position: 'absolute',
-    left: 50,
+    left: 0,
+    padding: 50,
   },
   rightButton: {
     position: 'absolute',
-    right: 50,
+    right: 0,
+    padding: 50,
   },
 });

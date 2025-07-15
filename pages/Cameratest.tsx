@@ -10,6 +10,7 @@ import {
 import { Camera, useCameraDevice } from 'react-native-vision-camera';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { CommonActions } from '@react-navigation/native'; 
 import { RootStackParamList } from '../App';
 import Tts from 'react-native-tts';
 import DoubleClick from 'double-click-react-native';
@@ -37,7 +38,7 @@ export default function Cameratest({ navigation, route }: Props) {
   const [showCamera, setShowCamera] = useState(false);
   const [imageSource, setImageSource] = useState('');
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
-
+  Tts.speak('Please choose to upload a photo or take a new one.');
   useEffect(() => {
     (async () => {
       await Camera.requestCameraPermission();
@@ -84,23 +85,39 @@ export default function Cameratest({ navigation, route }: Props) {
     });
   };
 
+  
   const navigateToFeature = () => {
     const feature = route.params.feature;
+    const imagePath = imageSource;
+
+    let targetScreen = '';
     if (feature === 'Translate') {
-      navigation.navigate('Translate', { imagePath: imageSource });
+      targetScreen = 'Translate';
     } else if (feature === 'Scantext') {
-      navigation.navigate('Scantext', { imagePath: imageSource });
+      targetScreen = 'Scantext';
     } else if (feature === 'ColorDetector') {
-      navigation.navigate('ColorDetector', { imagePath: imageSource });
+      targetScreen = 'ColorDetector';
     } else if (feature === 'RoboflowScreen') {
-      navigation.navigate('RoboflowScreen', { imagePath: imageSource });
+      targetScreen = 'RoboflowScreen';
+    }
+
+    if (targetScreen !== '') {
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 1,
+          routes: [
+            { name: 'Homepage' },
+            { name: targetScreen, params: { imagePath } },
+          ],
+        })
+      );
     }
   };
 
   if (!device) return <Text>Camera not available</Text>;
 
   return (
-    <SafeAreaView style={styles.safeArea}> 
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {showCamera ? (
           <>
@@ -134,30 +151,29 @@ export default function Cameratest({ navigation, route }: Props) {
             )}
             {!showCamera && imageSource === '' && (
               <View style={styles.backButton}>
-                <DoubleClick 
+                <DoubleClick
                   singleTap={() => {
                     Tts.speak('Take a photo');
                   }}
                   doubleTap={() => {
-                      setShowCamera(true);
+                    setShowCamera(true);
+                    Tts.speak('Take a photo');
                   }}
                   delay={300}
                   style={styles.takeaPhotoBtn}
                 >
                   <Text style={styles.backText}>Take a Photo</Text>
                 </DoubleClick>
-                <DoubleClick 
+                <DoubleClick
                   singleTap={() => {
                     Tts.speak('Upload a photo');
                   }}
-                  doubleTap={
-                    uploadFromLibrary
-                  }
+                  doubleTap={uploadFromLibrary}
                   delay={300}
                   style={styles.takeaPhotoBtn}
                 >
                   <Text style={styles.backText}>Upload a Photo</Text>
-              </DoubleClick>
+                </DoubleClick>
               </View>
             )}
             {imageSource !== '' && (
@@ -229,9 +245,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderColor: '#fff',
     width: '100%',
-  },
-  takeaPhotoBtnPressed: {
-    backgroundColor: '#22668D',
   },
   backText: {
     color: 'white',
