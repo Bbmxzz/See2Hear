@@ -99,6 +99,7 @@ export default function Homepage({ navigation }: Props) {
                   if ('params' in feature && feature.params){
                     navigation.navigate(feature.navigate as any, feature.params);
                     Tts.speak(`navigate to ${feature.tts}`);
+                    Tts.speak('Please choose to upload a photo or take a new one.');
                   } else {
                     navigation.navigate(feature.navigate as any);
                     Tts.speak(`navigate to ${feature.tts}`);

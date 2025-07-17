@@ -201,10 +201,7 @@ const Translate = () => {
         const fromLang = langMap[match[1]];
         const toLang = langMap[match[2]];
         if (fromLang && toLang) {
-          //
-          //
-          //
-          //
+
           Tts.setDefaultLanguage('en-US');
           Tts.speak(`Translating from ${match[1]} to ${match[2]}`);
           setSourceLang(fromLang);

@@ -38,7 +38,6 @@ export default function Cameratest({ navigation, route }: Props) {
   const [showCamera, setShowCamera] = useState(false);
   const [imageSource, setImageSource] = useState('');
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
-  Tts.speak('Please choose to upload a photo or take a new one.');
   useEffect(() => {
     (async () => {
       await Camera.requestCameraPermission();
