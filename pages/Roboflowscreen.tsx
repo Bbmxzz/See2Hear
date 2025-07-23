@@ -30,7 +30,7 @@ export default function Pricetag({ route }: Props) {
   const [colorMap, setColorMap] = useState<{ [key: string]: string }>({});
   const [listening, setListening] = useState(false);
   const isSpeakingRef = useRef(true);
-
+  
   const ROBFLOW_API = 'https://detect.roboflow.com/pricetag-vnluk/3?api_key=aBPcgn7xI7UGZm1uHn82';
   const screenWidth = Dimensions.get('window').width;
   const maxHeight = 400;
