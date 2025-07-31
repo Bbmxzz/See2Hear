@@ -19,7 +19,6 @@ type Props = {
   route: { params: { imagePath: string } };
 };
 
-
 export default function Pricetag({ route }: Props) {
   const { imagePath } = route.params;
   const [imageSize, setImageSize] = useState({ width: 1, height: 1 });
@@ -87,54 +86,61 @@ export default function Pricetag({ route }: Props) {
   };
 
   const handleSpeakContent = async () => {
-    try {
-      if (recognizedInfoList.length === 0) {
-        Tts.speak('No price tag information detected.');
-        return;
-      }
-
-      for (const info of recognizedInfoList) {
-        if (!isSpeakingRef.current) return;
-
-        if (!info.name) continue;
-
-        const fields = [
-          { label: 'Product', value: info.name },
-          { label: 'Brand', value: info.brand },
-          // { label: 'Quantity', value: info.quantity },
-          { label: 'Price', value: info.price, numericOnly: true },
-          { label: 'VAT included', value: info.vat, numericOnly: true },
-        ];
-
-        for (const field of fields) {
-          if (!field.value || !isSpeakingRef.current) return;
-
-          const containsJapanese = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u.test(field.value);
-          const numericPart = extractNumberOnly(field.value);
-          let spokenValue = field.value;
-
-          if (field.numericOnly) {
-            spokenValue = containsJapanese
-              ? convertNumbersToJapanese(numericPart)
-              : numericPart + ' yen';
-          }
-
-          await Tts.setDefaultLanguage('en-US');
-          Tts.speak(`${field.label}:`);
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          if (!isSpeakingRef.current) return;
-
-          await Tts.setDefaultLanguage(containsJapanese ? 'ja-JP' : 'en-US');
-          await Tts.setDefaultRate(containsJapanese ? 0.4 : 0.5);
-          Tts.speak(spokenValue);
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          if (!isSpeakingRef.current) return;
-        }
-      }
-    } catch (error) {
-      console.error('TTS error:', error);
+  try {
+    if (recognizedInfoList.length === 0) {
+      Tts.speak('No price tag information detected.');
+      return;
     }
-  };
+
+    isSpeakingRef.current = true;
+
+    for (let i = 0; i < recognizedInfoList.length; i++) {
+      if (!isSpeakingRef.current) break;
+
+      const info = recognizedInfoList[i];
+
+      if (!info.name) continue;
+
+      await Tts.setDefaultLanguage('en-US');
+      await Tts.setDefaultRate(0.5);
+      Tts.speak(`Price tag number ${i + 1}`);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (!isSpeakingRef.current) break;
+
+      const fields = [
+        { label: 'Product', value: info.name },
+        { label: 'Brand', value: info.brand },
+        { label: 'Price', value: info.price, numericOnly: true },
+        { label: 'VAT included', value: info.vat, numericOnly: true },
+      ];
+
+      for (const field of fields) {
+        if (!isSpeakingRef.current) break;
+        if (!field.value) continue;
+        const containsJapanese = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u.test(field.value);
+        const numericPart = extractNumberOnly(field.value);
+        let spokenValue = field.value;
+        if (field.numericOnly) {
+          spokenValue = containsJapanese
+            ? convertNumbersToJapanese(numericPart)
+            : numericPart + ' yen';
+        }
+        await Tts.setDefaultLanguage('en-US');
+        Tts.speak(`${field.label}:`);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        if (!isSpeakingRef.current) break;
+
+        await Tts.setDefaultLanguage(containsJapanese ? 'ja-JP' : 'en-US');
+        await Tts.setDefaultRate(containsJapanese ? 0.4 : 0.5);
+        Tts.speak(spokenValue);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (!isSpeakingRef.current) break;
+      }
+    }
+  } catch (error) {
+    console.error('TTS error:', error);
+  }
+};
 
   useEffect(() => {
     isSpeakingRef.current = true;

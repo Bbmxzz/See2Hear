@@ -102,7 +102,6 @@ export default function ColorDetector({ route }: Props) {
         }
       })
       .catch(console.error);
-
     return () => {
       Tts.stop();
       Tts.setDefaultLanguage('en-US');

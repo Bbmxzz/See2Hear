@@ -63,12 +63,10 @@ export default function Homepage({ navigation }: Props) {
 
   const findFeatureByCommand = (command: string) => {
     const lower = command.toLowerCase();
-
     if (lower.includes('scan') || lower.includes('text') || lower.includes('read') || lower.includes('reader')) return features[0];
     if (lower.includes('color')) return features[1];
     if (lower.includes('translate') || lower.includes('language') || lower.includes('translator')) return features[2];
     if (lower.includes('price') || lower.includes('tag') || lower.includes('tags')) return features[3];
-
     return undefined;
   };
 
@@ -168,7 +166,7 @@ export default function Homepage({ navigation }: Props) {
             if (msg.startsWith('ERROR:')) {
               Tts.speak('Speech recognition error.');
             } else if (msg === 'END'){
-              // do nothing if silent
+              // silence
             } else {
               Tts.speak(`You said: ${msg}`);
               handleVoiceCommand(msg);

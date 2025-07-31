@@ -51,7 +51,6 @@ export default function Cameratest({ navigation, route }: Props) {
       const photo = await camera.current.takePhoto({ flash: 'off' });
       const originalPath = `file://${photo.path}`;
       setImageSource(originalPath);
-
       Image.getSize(originalPath, (width, height) => {
         setImageSize({ width, height });
         setShowCamera(false);
@@ -88,7 +87,7 @@ export default function Cameratest({ navigation, route }: Props) {
   const navigateToFeature = () => {
     const feature = route.params.feature;
     const imagePath = imageSource;
-
+    
     let targetScreen = '';
     if (feature === 'Translate') {
       targetScreen = 'Translate';
